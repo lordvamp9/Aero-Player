@@ -1,4 +1,4 @@
-# Aero Player &#x22C6;&#x10659;&#x208A;&#x02DA;&#x2639;&#x2661;
+# Aero Player 
 
 ![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=nodedotjs&logoColor=white)
 ![Electron](https://img.shields.io/badge/Electron-30-47848F?logo=electron&logoColor=white)
