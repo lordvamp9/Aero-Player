@@ -1,0 +1,149 @@
+/* =====================================================================
+   AERO PLAYER  ·  animations.css
+   Keyframes y transiciones de toda la interfaz.
+   ===================================================================== */
+
+/* 1. Entrada de la ventana */
+@keyframes windowOpen {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* 2. Barras del ecualizador en la cancion activa */
+@keyframes eqBar1 {
+  0%,
+  100% {
+    height: 4px;
+  }
+  50% {
+    height: 10px;
+  }
+}
+@keyframes eqBar2 {
+  0%,
+  100% {
+    height: 9px;
+  }
+  50% {
+    height: 4px;
+  }
+}
+@keyframes eqBar3 {
+  0%,
+  100% {
+    height: 6px;
+  }
+  50% {
+    height: 11px;
+  }
+}
+
+/* 3. Pulso del boton play cuando esta reproduciendo */
+@keyframes playPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 14px rgba(40, 110, 230, 0.35), inset 0 1px 0 rgba(180, 220, 255, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 22px rgba(60, 140, 255, 0.55), inset 0 1px 0 rgba(200, 235, 255, 0.28);
+  }
+}
+
+/* 4. Parpadeo del cristal en el knob de progreso */
+@keyframes knobGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 8px rgba(60, 140, 255, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 14px rgba(80, 170, 255, 0.7);
+  }
+}
+
+/* 5. Fade in de items de la lista */
+@keyframes trackFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 6. Shimmer en el brillo superior de paneles glass */
+@keyframes glassShimmer {
+  0% {
+    opacity: 0.08;
+  }
+  50% {
+    opacity: 0.14;
+  }
+  100% {
+    opacity: 0.08;
+  }
+}
+
+/* 7. Rotacion sutil del disco de album art */
+@keyframes discSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 8. Entrada de notificacion toast */
+@keyframes toastSlide {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 8b. Salida de toast */
+@keyframes toastOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+/* 9. Entrada del menu contextual */
+@keyframes contextIn {
+  from {
+    opacity: 0;
+    transform: scaleY(0.85) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1) translateY(0);
+  }
+}
+
+/* 10. Latido suave del glow ambiental del escenario */
+@keyframes ambientPulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}

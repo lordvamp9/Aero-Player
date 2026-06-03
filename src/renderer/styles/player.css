@@ -1,0 +1,477 @@
+/* =====================================================================
+   AERO PLAYER  ·  player.css
+   Escenario del visualizador, vista "ahora suena", lista de pistas y
+   panel de controles inferior.
+   ===================================================================== */
+
+/* --------------------------------------------------------------------
+   ESCENARIO
+   -------------------------------------------------------------------- */
+.stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(6, 16, 42, 0.55), rgba(3, 9, 26, 0.65));
+  border: 1px solid var(--glass-border);
+  box-shadow: inset 0 1px 0 var(--glass-shine-top), 0 8px 34px rgba(0, 16, 80, 0.4);
+}
+
+.visualizer-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 1;
+}
+
+/* --------------------------------------------------------------------
+   VISTA "AHORA SUENA"
+   -------------------------------------------------------------------- */
+.now-playing {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+  pointer-events: none;
+}
+
+.np-disc-wrap {
+  position: relative;
+  filter: drop-shadow(0 14px 40px rgba(0, 20, 90, 0.6));
+}
+
+.np-disc {
+  position: relative;
+  width: 208px;
+  height: 208px;
+  border-radius: 50%;
+  background:
+    repeating-radial-gradient(
+      circle at center,
+      rgba(255, 255, 255, 0.025) 0 1px,
+      transparent 1px 4px
+    ),
+    radial-gradient(circle at 50% 38%, rgba(40, 90, 180, 0.55), rgba(6, 16, 48, 0.95) 70%);
+  border: 1px solid rgba(120, 175, 255, 0.3);
+  box-shadow:
+    inset 0 2px 10px rgba(180, 220, 255, 0.12),
+    inset 0 -6px 20px rgba(0, 10, 40, 0.7),
+    0 0 50px rgba(40, 110, 230, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: discSpin 22s linear infinite;
+  animation-play-state: paused;
+}
+.np-disc.spinning {
+  animation-play-state: running;
+}
+
+.np-disc-art {
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  background-color: rgba(10, 28, 75, 0.8);
+  box-shadow: inset 0 0 0 4px rgba(4, 12, 35, 0.85), inset 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.np-disc-hole {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #060f26 40%, rgba(90, 150, 240, 0.5) 100%);
+  border: 1px solid rgba(150, 195, 255, 0.5);
+  box-shadow: 0 0 10px rgba(60, 130, 255, 0.5);
+}
+
+.np-meta {
+  text-align: center;
+  max-width: 70%;
+}
+.np-title {
+  font-size: 24px;
+  font-weight: var(--weight-light);
+  letter-spacing: 0.5px;
+  color: rgba(225, 240, 255, 0.96);
+  text-shadow: 0 2px 16px rgba(20, 70, 180, 0.7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.np-artist {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-shadow: 0 1px 8px rgba(0, 20, 80, 0.6);
+}
+.np-source {
+  margin-top: 12px;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+/* --------------------------------------------------------------------
+   LISTA DE PISTAS (vista de biblioteca)
+   -------------------------------------------------------------------- */
+.track-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 50px;
+  padding: 0 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  animation: trackFadeIn 0.25s ease both;
+}
+.track-row:hover {
+  background: linear-gradient(90deg, rgba(40, 90, 195, 0.25), rgba(18, 48, 130, 0.12));
+  border-color: rgba(90, 150, 255, 0.2);
+}
+.track-row.active {
+  background: linear-gradient(90deg, rgba(50, 105, 215, 0.38), rgba(22, 58, 150, 0.16));
+  border-color: rgba(120, 185, 255, 0.34);
+}
+.tr-index {
+  width: 22px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.tr-cover {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border-radius: 6px;
+  background-size: cover;
+  background-position: center;
+  background-color: rgba(15, 38, 100, 0.6);
+  border: 1px solid rgba(90, 150, 255, 0.2);
+  box-shadow: inset 0 1px 0 rgba(170, 210, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tr-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tr-title {
+  font-size: 13px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tr-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tr-album {
+  flex: 0 0 26%;
+  min-width: 0;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tr-dur {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+.tr-platform {
+  flex: 0 0 auto;
+  display: flex;
+  width: 16px;
+  height: 16px;
+}
+.list-empty {
+  padding: 40px 20px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-dim);
+}
+
+/* Cabecera de grupo (vistas por album / artista / genero) */
+.group-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 14px 12px 6px;
+  font-size: 12px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  background: linear-gradient(180deg, rgba(7, 18, 46, 0.92), rgba(7, 18, 46, 0));
+  border-bottom: 1px solid rgba(60, 120, 220, 0.14);
+}
+
+/* Retroalimentacion visual al arrastrar archivos sobre una zona */
+.drop-active {
+  outline: 1px dashed rgba(130, 190, 255, 0.55);
+  outline-offset: -4px;
+}
+.queue-list.drop-active {
+  background: rgba(40, 90, 195, 0.08);
+  border-radius: 8px;
+}
+
+/* --------------------------------------------------------------------
+   PANEL DE CONTROLES
+   -------------------------------------------------------------------- */
+.player-bar {
+  position: relative;
+  flex: 0 0 auto;
+  margin: 0 10px 10px;
+  padding: 12px 18px 14px;
+  border-radius: 12px;
+  z-index: 8;
+}
+
+/* Barra de progreso */
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.time {
+  flex: 0 0 auto;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  min-width: 36px;
+}
+.time-current {
+  text-align: right;
+}
+.progress-rail {
+  position: relative;
+  flex: 1;
+  height: 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  background: linear-gradient(180deg, rgba(3, 10, 30, 0.85), rgba(8, 20, 52, 0.7));
+  border: 1px solid rgba(70, 130, 230, 0.2);
+  box-shadow: inset 0 1px 4px rgba(0, 8, 35, 0.7);
+}
+.progress-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, rgba(40, 95, 210, 0.9), rgba(90, 165, 255, 0.95));
+  box-shadow: 0 0 10px rgba(70, 150, 255, 0.5), inset 0 1px 0 rgba(200, 230, 255, 0.4);
+}
+.progress-knob {
+  position: absolute;
+  top: 50%;
+  left: 0%;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle at 35% 30%, #eaf4ff, #6fb0ff 45%, #2f6cdf 100%);
+  border: 1px solid rgba(190, 225, 255, 0.7);
+  box-shadow: 0 0 8px rgba(60, 140, 255, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+  transition: transform 0.12s ease;
+  opacity: 0;
+}
+.progress-rail:hover .progress-knob,
+.progress-rail.scrubbing .progress-knob {
+  opacity: 1;
+}
+.progress-rail:hover .progress-knob {
+  transform: translate(-50%, -50%) scale(1.18);
+}
+.progress-rail.scrubbing .progress-knob {
+  animation: knobGlow 1.2s ease-in-out infinite;
+}
+
+/* Fila de controles */
+.controls-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Mini "ahora suena" a la izquierda */
+.np-mini {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.np-mini-cover {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
+  border-radius: 7px;
+  background-size: cover;
+  background-position: center;
+  background-color: rgba(15, 38, 100, 0.6);
+  border: 1px solid rgba(90, 150, 255, 0.22);
+  box-shadow: inset 0 1px 0 rgba(170, 210, 255, 0.14), 0 3px 10px rgba(0, 14, 60, 0.4);
+}
+.np-mini-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.np-mini-title {
+  font-size: 13px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 210px;
+}
+.np-mini-artist {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 210px;
+}
+
+/* Transporte central */
+.transport {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ctrl-btn {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--text-muted);
+  transition: color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+}
+.ctrl-btn:hover {
+  color: var(--text-primary);
+  background: radial-gradient(circle, rgba(50, 105, 215, 0.25), transparent 70%);
+}
+.ctrl-btn:active {
+  transform: scale(0.92);
+}
+.ctrl-btn.toggled {
+  color: rgba(120, 190, 255, 0.95);
+  filter: drop-shadow(0 0 6px rgba(70, 150, 255, 0.55));
+}
+
+/* Boton play/pausa grande */
+.play-btn {
+  width: 54px;
+  height: 54px;
+  color: #eaf4ff;
+  background: linear-gradient(180deg, rgba(70, 130, 235, 0.5), rgba(30, 75, 185, 0.6) 55%, rgba(18, 50, 145, 0.72));
+  border: 1px solid rgba(140, 195, 255, 0.4);
+  box-shadow: 0 0 14px rgba(40, 110, 230, 0.35), inset 0 1px 0 rgba(190, 225, 255, 0.3), inset 0 -2px 6px rgba(0, 14, 60, 0.5);
+  overflow: hidden;
+}
+.play-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(195, 228, 255, 0.3), transparent);
+  border-radius: 50% 50% 40% 40%;
+  pointer-events: none;
+}
+.play-btn:hover {
+  background: linear-gradient(180deg, rgba(90, 150, 250, 0.6), rgba(40, 90, 205, 0.7), rgba(24, 60, 165, 0.8));
+  transform: scale(1);
+}
+.play-btn svg {
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 1px 3px rgba(0, 15, 60, 0.6));
+}
+.play-btn.playing {
+  animation: playPulse 2.4s ease-in-out infinite;
+}
+
+/* Cluster derecho: volumen */
+.right-cluster {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.vol-icon {
+  width: 32px;
+  height: 32px;
+}
+.volume-rail {
+  position: relative;
+  width: 104px;
+  height: 5px;
+  border-radius: 4px;
+  cursor: pointer;
+  background: linear-gradient(180deg, rgba(3, 10, 30, 0.85), rgba(8, 20, 52, 0.7));
+  border: 1px solid rgba(70, 130, 230, 0.2);
+  box-shadow: inset 0 1px 3px rgba(0, 8, 35, 0.7);
+}
+.volume-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 80%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, rgba(40, 95, 210, 0.85), rgba(95, 170, 255, 0.92));
+  box-shadow: 0 0 6px rgba(70, 150, 255, 0.4);
+}
+.volume-knob {
+  position: absolute;
+  top: 50%;
+  left: 80%;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle at 35% 30%, #eaf4ff, #6fb0ff 45%, #2f6cdf 100%);
+  border: 1px solid rgba(190, 225, 255, 0.7);
+  box-shadow: 0 0 6px rgba(60, 140, 255, 0.4);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.volume-rail:hover .volume-knob {
+  opacity: 1;
+}

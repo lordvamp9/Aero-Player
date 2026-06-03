@@ -1,0 +1,268 @@
+/* =====================================================================
+   AERO PLAYER  ·  main.css
+   Variables de color, reset, tipografia base y estructura del shell.
+   La estetica completa imita Windows 7 Aero "Liquid Glass".
+   ===================================================================== */
+
+:root {
+  /* --- Fondos de cristal (profundidad) --- */
+  --glass-bg-deep: rgba(3, 7, 18, 0.97);
+  --glass-bg-mid: rgba(6, 14, 35, 0.96);
+  --glass-bg-light: rgba(10, 22, 55, 0.9);
+  --glass-surface: rgba(20, 50, 140, 0.18);
+
+  /* --- Bordes y brillos --- */
+  --glass-border: rgba(80, 140, 255, 0.18);
+  --glass-border-hi: rgba(140, 200, 255, 0.28);
+  --glass-shine-top: rgba(180, 220, 255, 0.12);
+  --glass-shine-edge: rgba(140, 190, 255, 0.08);
+
+  /* --- Texto --- */
+  --text-primary: rgba(200, 225, 255, 0.92);
+  --text-secondary: rgba(150, 190, 240, 0.82);
+  --text-muted: rgba(110, 155, 215, 0.7);
+  --text-dim: rgba(80, 120, 185, 0.6);
+
+  /* --- Acentos --- */
+  --accent-blue: rgba(60, 130, 255, 0.9);
+  --accent-glow: rgba(40, 100, 220, 0.35);
+  --yt-red: rgba(255, 0, 0, 0.9);
+  --sp-green: rgba(30, 185, 84, 0.9);
+
+  /* --- Tipografia --- */
+  --font-ui: 'Segoe UI', 'Segoe UI Light', system-ui, 'Helvetica Neue', Arial, sans-serif;
+  --weight-light: 300;
+  --weight-regular: 400;
+  --weight-semibold: 600;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* El atributo hidden debe imponerse sobre cualquier display de autor
+   (por ejemplo .list-view o .src-list que usan display:flex). */
+[hidden] {
+  display: none !important;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  user-select: none;
+  font-family: var(--font-ui);
+  font-weight: var(--weight-light);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background: #02060f;
+}
+
+button {
+  font-family: inherit;
+  font-weight: var(--weight-light);
+  color: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+  outline: none;
+}
+
+input {
+  font-family: inherit;
+  font-weight: var(--weight-light);
+  outline: none;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+ul {
+  list-style: none;
+}
+
+::selection {
+  background: rgba(60, 130, 255, 0.35);
+  color: #eaf3ff;
+}
+
+/* =====================================================================
+   VENTANA PRINCIPAL
+   Fondo: capas de azul profundo con auroras radiales muy tenues que dan
+   la sensacion de vidrio sobre un cielo nocturno (Aero autentico).
+   ===================================================================== */
+.app-window {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background:
+    radial-gradient(1200px 600px at 78% -8%, rgba(28, 78, 190, 0.28), transparent 60%),
+    radial-gradient(900px 700px at 8% 110%, rgba(18, 52, 150, 0.26), transparent 62%),
+    radial-gradient(700px 500px at 50% 50%, rgba(12, 36, 105, 0.18), transparent 70%),
+    linear-gradient(160deg, #051026 0%, #030a1c 45%, #020714 100%);
+  animation: windowOpen 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Velo de ruido/grano sutil para que el cristal no se vea plano */
+.app-window::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: radial-gradient(rgba(180, 215, 255, 0.5) 0.5px, transparent 0.6px);
+  background-size: 3px 3px;
+  mix-blend-mode: screen;
+}
+
+/* =====================================================================
+   BARRA DE TITULO
+   ===================================================================== */
+.titlebar {
+  position: relative;
+  height: 34px;
+  flex: 0 0 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px 0 12px;
+  -webkit-app-region: drag;
+  background: linear-gradient(
+    180deg,
+    rgba(55, 105, 215, 0.6) 0%,
+    rgba(25, 62, 165, 0.7) 45%,
+    rgba(14, 42, 125, 0.8) 100%
+  );
+  border-bottom: 1px solid rgba(80, 140, 255, 0.22);
+  box-shadow: inset 0 -1px 0 rgba(0, 14, 60, 0.5), 0 1px 0 rgba(0, 8, 30, 0.5);
+  z-index: 20;
+}
+
+.titlebar-shine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(190, 225, 255, 0.16), transparent);
+  pointer-events: none;
+}
+
+.titlebar-left {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  position: relative;
+}
+
+.app-glyph {
+  display: flex;
+  align-items: center;
+  filter: drop-shadow(0 1px 3px rgba(0, 20, 80, 0.7));
+}
+
+.app-title {
+  font-size: 12px;
+  font-weight: var(--weight-light);
+  letter-spacing: 0.4px;
+  color: rgba(205, 228, 255, 0.92);
+  text-shadow: 0 1px 4px rgba(0, 20, 90, 0.8);
+  white-space: nowrap;
+}
+
+.titlebar-right {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  -webkit-app-region: no-drag;
+}
+
+/* =====================================================================
+   CUERPO PRINCIPAL
+   ===================================================================== */
+.main-layout {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+  padding: 10px;
+  gap: 10px;
+  z-index: 2;
+}
+
+/* =====================================================================
+   BARRA DE ESTADO
+   ===================================================================== */
+.statusbar {
+  position: relative;
+  flex: 0 0 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  font-size: 9.5px;
+  font-weight: var(--weight-light);
+  letter-spacing: 0.3px;
+  color: var(--text-dim);
+  background: linear-gradient(180deg, rgba(8, 18, 44, 0.7), rgba(4, 10, 26, 0.85));
+  border-top: 1px solid rgba(40, 90, 175, 0.18);
+  box-shadow: inset 0 1px 0 rgba(120, 170, 255, 0.06);
+  z-index: 10;
+}
+
+.status-center {
+  flex: 1;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 16px;
+  color: var(--text-muted);
+}
+
+.status-right {
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* Reproductor de YouTube oculto y audio nativo */
+.yt-host {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  left: -9999px;
+  top: -9999px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* =====================================================================
+   SCROLLBAR ESTILO AERO
+   ===================================================================== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(5, 12, 35, 0.8);
+  border-left: 1px solid rgba(30, 70, 150, 0.15);
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(50, 100, 200, 0.5), rgba(25, 65, 160, 0.6));
+  border-radius: 3px;
+  border: 1px solid rgba(80, 140, 255, 0.15);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(70, 130, 235, 0.7), rgba(40, 90, 200, 0.75));
+}

@@ -1,0 +1,437 @@
+/* =====================================================================
+   AERO PLAYER  ·  glass.css
+   Todos los efectos "liquid glass": paneles, botones de ventana, botones
+   de conexion, selector de visualizador, menu contextual y toasts.
+   Cada superficie de cristal apila: fondo con profundidad + borde + brillo
+   superior (::before) + brillo lateral (::after) + sombras exteriores e
+   inset highlights.
+   ===================================================================== */
+
+/* --------------------------------------------------------------------
+   PANEL DE CRISTAL UNIVERSAL
+   -------------------------------------------------------------------- */
+.glass-panel {
+  position: relative;
+  background: linear-gradient(
+    180deg,
+    rgba(20, 55, 150, 0.28) 0%,
+    rgba(10, 30, 100, 0.35) 50%,
+    rgba(5, 18, 70, 0.45) 100%
+  );
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  box-shadow:
+    0 0 0 1px rgba(15, 45, 130, 0.3),
+    0 8px 34px rgba(0, 16, 80, 0.42),
+    inset 0 1px 0 var(--glass-shine-top),
+    inset 0 -1px 0 rgba(0, 15, 60, 0.4),
+    inset 1px 0 0 var(--glass-shine-edge),
+    inset -1px 0 0 rgba(0, 15, 60, 0.2);
+  overflow: hidden;
+}
+
+/* Brillo superior (reflejo de luz que cae sobre el cristal) */
+.glass-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 46%;
+  background: linear-gradient(
+    180deg,
+    rgba(180, 220, 255, 0.11) 0%,
+    rgba(120, 180, 255, 0.035) 60%,
+    transparent 100%
+  );
+  border-radius: 10px 10px 50% 50% / 10px 10px 14% 14%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Brillo lateral / base muy tenue */
+.glass-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(120% 60% at 50% 120%, rgba(40, 95, 210, 0.1), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Capa shimmer animada opcional dentro de un panel */
+.glass-shine-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 42%;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(190, 225, 255, 0.1), transparent 90%);
+  animation: glassShimmer 6s ease-in-out infinite;
+}
+
+/* El contenido del panel debe ir por encima de los brillos */
+.glass-panel > *:not(.glass-shine-layer) {
+  position: relative;
+  z-index: 2;
+}
+
+/* --------------------------------------------------------------------
+   BOTONES DE VENTANA (minimizar, maximizar, cerrar)
+   -------------------------------------------------------------------- */
+.win-btn {
+  position: relative;
+  width: 30px;
+  height: 22px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: linear-gradient(
+    180deg,
+    rgba(80, 130, 220, 0.3) 0%,
+    rgba(35, 75, 170, 0.4) 50%,
+    rgba(18, 52, 140, 0.5) 100%
+  );
+  border: 1px solid rgba(100, 160, 255, 0.2);
+  box-shadow: inset 0 1px 0 rgba(180, 220, 255, 0.18), inset 0 -1px 0 rgba(0, 20, 80, 0.3);
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.win-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(180, 220, 255, 0.18), transparent);
+  border-radius: 3px 3px 0 0;
+  pointer-events: none;
+}
+
+.win-glyph {
+  position: relative;
+  z-index: 1;
+  font-family: Arial, sans-serif;
+  font-weight: 300;
+  font-size: 11px;
+  line-height: 1;
+  color: rgba(210, 232, 255, 0.92);
+  text-shadow: 0 1px 2px rgba(0, 15, 55, 0.7);
+}
+
+.win-btn:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(110, 165, 250, 0.45),
+    rgba(55, 105, 215, 0.55),
+    rgba(30, 75, 185, 0.6)
+  );
+  border-color: rgba(150, 200, 255, 0.4);
+  box-shadow: inset 0 1px 0 rgba(200, 235, 255, 0.28), 0 0 10px rgba(60, 130, 255, 0.3);
+}
+
+.win-btn:active {
+  background: linear-gradient(180deg, rgba(25, 60, 150, 0.7), rgba(15, 40, 110, 0.8));
+}
+
+.win-btn-close:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(220, 80, 80, 0.55),
+    rgba(160, 30, 30, 0.65),
+    rgba(120, 20, 20, 0.75)
+  );
+  border-color: rgba(255, 100, 100, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 200, 200, 0.3), 0 0 12px rgba(220, 60, 60, 0.4);
+}
+
+/* --------------------------------------------------------------------
+   BOTONES DE CONEXION (Conectar YouTube / Spotify)
+   -------------------------------------------------------------------- */
+.connect-btn {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  height: 34px;
+  margin: 4px 0 2px;
+  padding: 0 12px;
+  border-radius: 7px;
+  overflow: hidden;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  color: var(--text-primary);
+  background: linear-gradient(
+    180deg,
+    rgba(28, 66, 160, 0.32) 0%,
+    rgba(14, 38, 110, 0.42) 55%,
+    rgba(8, 24, 78, 0.5) 100%
+  );
+  border: 1px solid var(--glass-border);
+  box-shadow: inset 0 1px 0 var(--glass-shine-top), 0 3px 12px rgba(0, 18, 70, 0.35);
+  transition: transform 0.12s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.connect-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(180, 220, 255, 0.12), transparent);
+  pointer-events: none;
+}
+
+.connect-btn svg {
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+}
+
+.connect-btn span {
+  position: relative;
+  z-index: 1;
+}
+
+.connect-btn:hover {
+  transform: translateY(-1px);
+  border-color: var(--glass-border-hi);
+}
+
+.connect-btn:active {
+  transform: translateY(0);
+}
+
+.connect-yt:hover {
+  box-shadow: inset 0 1px 0 rgba(255, 200, 200, 0.18), 0 4px 16px rgba(180, 20, 20, 0.3);
+  border-color: rgba(255, 90, 90, 0.4);
+}
+
+.connect-sp:hover {
+  box-shadow: inset 0 1px 0 rgba(200, 255, 220, 0.18), 0 4px 16px rgba(20, 150, 70, 0.3);
+  border-color: rgba(50, 220, 120, 0.4);
+}
+
+/* Estado conectado */
+.connect-btn.connected {
+  background: linear-gradient(180deg, rgba(20, 60, 145, 0.42), rgba(10, 32, 96, 0.55));
+  cursor: default;
+}
+.connect-btn.connected .check {
+  display: inline-flex;
+  color: var(--sp-green);
+}
+.connect-yt.connected .check {
+  color: rgba(120, 200, 255, 0.95);
+}
+
+/* --------------------------------------------------------------------
+   SELECTOR DE VISUALIZADOR (esquina inferior derecha del escenario)
+   -------------------------------------------------------------------- */
+.viz-selector {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  display: flex;
+  gap: 4px;
+  padding: 5px;
+  border-radius: 10px;
+  z-index: 6;
+}
+
+.viz-mode {
+  position: relative;
+  width: 34px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--text-muted);
+  background: linear-gradient(180deg, rgba(30, 70, 165, 0.22), rgba(12, 34, 100, 0.3));
+  border: 1px solid rgba(80, 140, 255, 0.14);
+  box-shadow: inset 0 1px 0 rgba(170, 210, 255, 0.1);
+  transition: color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease;
+}
+
+.viz-mode:hover {
+  color: var(--text-primary);
+  transform: translateY(-1px);
+  box-shadow: inset 0 1px 0 rgba(190, 225, 255, 0.18), 0 0 10px rgba(60, 130, 255, 0.25);
+}
+
+.viz-mode.active {
+  color: #dcefff;
+  background: linear-gradient(180deg, rgba(55, 110, 220, 0.5), rgba(28, 70, 175, 0.6));
+  border-color: rgba(140, 200, 255, 0.4);
+  box-shadow: inset 0 1px 0 rgba(200, 235, 255, 0.28), 0 0 14px rgba(60, 140, 255, 0.45);
+}
+
+/* --------------------------------------------------------------------
+   VISTA DE LISTAS (biblioteca / playlists / resultados de busqueda)
+   -------------------------------------------------------------------- */
+.list-view {
+  position: absolute;
+  inset: 16px 16px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  z-index: 5;
+  animation: windowOpen 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.list-view-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid rgba(60, 120, 220, 0.16);
+}
+
+.list-view-title {
+  font-size: 17px;
+  font-weight: var(--weight-light);
+  letter-spacing: 0.4px;
+  color: var(--text-primary);
+  text-shadow: 0 1px 6px rgba(0, 20, 80, 0.6);
+}
+
+.list-view-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+.list-view-close {
+  margin-left: auto;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--text-muted);
+  background: rgba(20, 50, 130, 0.25);
+  border: 1px solid rgba(80, 140, 255, 0.16);
+  transition: color 0.15s, background 0.15s;
+}
+.list-view-close:hover {
+  color: var(--text-primary);
+  background: rgba(40, 90, 190, 0.4);
+}
+
+.list-view-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 10px 14px;
+}
+
+/* --------------------------------------------------------------------
+   MENU CONTEXTUAL GLASS
+   -------------------------------------------------------------------- */
+.context-menu {
+  position: fixed;
+  min-width: 188px;
+  padding: 6px;
+  border-radius: 9px;
+  z-index: 1000;
+  transform-origin: top left;
+  animation: contextIn 0.14s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 30px;
+  padding: 0 11px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.ctx-item:hover {
+  color: #eaf3ff;
+  background: linear-gradient(180deg, rgba(55, 110, 220, 0.4), rgba(28, 68, 170, 0.5));
+}
+.ctx-item svg {
+  opacity: 0.8;
+}
+.ctx-sep {
+  height: 1px;
+  margin: 5px 8px;
+  background: linear-gradient(90deg, transparent, rgba(90, 150, 255, 0.22), transparent);
+}
+
+/* --------------------------------------------------------------------
+   NOTIFICACIONES TOAST
+   -------------------------------------------------------------------- */
+.toast-container {
+  position: fixed;
+  right: 18px;
+  bottom: 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 2000;
+  pointer-events: none;
+}
+
+.toast {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 230px;
+  max-width: 330px;
+  padding: 11px 15px;
+  border-radius: 9px;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--text-primary);
+  background: linear-gradient(180deg, rgba(18, 48, 130, 0.85), rgba(8, 22, 70, 0.9));
+  border: 1px solid rgba(110, 170, 255, 0.25);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  box-shadow: 0 10px 34px rgba(0, 14, 70, 0.55), inset 0 1px 0 rgba(190, 225, 255, 0.18);
+  animation: toastSlide 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.toast.leaving {
+  animation: toastOut 0.3s ease forwards;
+}
+
+.toast::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(180, 220, 255, 0.1), transparent);
+  pointer-events: none;
+}
+
+.toast-icon {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toast-text {
+  position: relative;
+  z-index: 1;
+  line-height: 1.35;
+}

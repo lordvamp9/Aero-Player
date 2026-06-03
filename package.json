@@ -1,0 +1,31 @@
+{
+  "name": "aero-player",
+  "version": "1.0.0",
+  "description": "Media player de escritorio con estetica Windows 7 Aero Liquid Glass",
+  "author": "lordvamp9",
+  "license": "MIT",
+  "main": "src/main/index.js",
+  "scripts": {
+    "dev": "concurrently -k -n VITE,ELECTRON -c cyan,magenta \"vite\" \"electron .\"",
+    "build": "vite build",
+    "icon": "node build/generate-icon.mjs",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "electron-store": "^8.2.0",
+    "google-auth-library": "^9.14.1",
+    "googleapis": "^144.0.0",
+    "music-metadata": "^7.14.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "^0.1.65",
+    "concurrently": "^8.2.2",
+    "electron": "^30.5.1",
+    "electron-builder": "^24.13.3",
+    "png-to-ico": "^2.1.8",
+    "vite": "^5.4.10"
+  }
+}

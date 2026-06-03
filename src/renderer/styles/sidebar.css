@@ -1,0 +1,336 @@
+/* =====================================================================
+   AERO PLAYER  ·  sidebar.css
+   Sidebar de navegacion: busqueda, secciones de fuentes y cola.
+   ===================================================================== */
+
+.sidebar {
+  position: relative;
+  flex: 0 0 268px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 12px 10px 10px;
+}
+
+/* --------------------------------------------------------------------
+   BUSQUEDA GLOBAL
+   -------------------------------------------------------------------- */
+.sidebar-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 11px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(4, 12, 34, 0.6), rgba(6, 18, 48, 0.5));
+  border: 1px solid rgba(70, 130, 230, 0.18);
+  box-shadow: inset 0 2px 6px rgba(0, 10, 40, 0.55), inset 0 1px 0 rgba(120, 170, 255, 0.06);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.sidebar-search:focus-within {
+  border-color: rgba(110, 175, 255, 0.4);
+  box-shadow: inset 0 2px 6px rgba(0, 10, 40, 0.55), 0 0 12px rgba(60, 130, 255, 0.25);
+}
+.search-icon {
+  color: var(--text-muted);
+  display: flex;
+}
+#global-search {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+#global-search::placeholder {
+  color: var(--text-dim);
+}
+
+/* --------------------------------------------------------------------
+   AREA DESPLAZABLE DE SECCIONES
+   -------------------------------------------------------------------- */
+.sidebar-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  margin-top: 12px;
+  padding-right: 2px;
+}
+
+.src-section {
+  margin-bottom: 14px;
+}
+
+.src-header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 6px 7px;
+  border-bottom: 1px solid rgba(60, 120, 220, 0.12);
+  margin-bottom: 6px;
+}
+.src-logo {
+  display: flex;
+  align-items: center;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+}
+.src-name {
+  font-size: 12.5px;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  font-weight: var(--weight-light);
+}
+.src-status {
+  margin-left: auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(60, 90, 140, 0.5);
+  box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.4);
+}
+.src-status.online {
+  background: var(--sp-green);
+  box-shadow: 0 0 8px rgba(30, 200, 90, 0.6);
+}
+.src-status.online.yt {
+  background: rgba(120, 200, 255, 0.95);
+  box-shadow: 0 0 8px rgba(80, 170, 255, 0.6);
+}
+
+/* Lista de sub-items de cada fuente */
+.src-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.src-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 29px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, padding-left 0.15s ease;
+}
+.src-item .dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.55;
+  flex: 0 0 auto;
+}
+.src-item:hover {
+  color: var(--text-primary);
+  background: linear-gradient(90deg, rgba(40, 90, 195, 0.22), rgba(20, 55, 140, 0.06));
+  padding-left: 13px;
+}
+.src-item.active {
+  color: #dcefff;
+  background: linear-gradient(90deg, rgba(50, 105, 215, 0.34), rgba(22, 58, 150, 0.12));
+  box-shadow: inset 0 1px 0 rgba(160, 205, 255, 0.12), inset 2px 0 0 rgba(110, 180, 255, 0.8);
+}
+
+.user-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 10px;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.user-line .check {
+  display: inline-flex;
+  color: var(--sp-green);
+}
+
+/* Boton agregar carpeta */
+.add-folder-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  margin-top: 6px;
+  padding: 0 11px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  border: 1px dashed rgba(80, 140, 255, 0.28);
+  background: rgba(15, 40, 110, 0.18);
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.add-folder-btn:hover {
+  color: var(--text-primary);
+  border-color: rgba(120, 180, 255, 0.45);
+  background: rgba(30, 70, 165, 0.3);
+}
+
+/* --------------------------------------------------------------------
+   COLA DE REPRODUCCION
+   -------------------------------------------------------------------- */
+.queue-block {
+  flex: 0 0 auto;
+  max-height: 38%;
+  display: flex;
+  flex-direction: column;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(60, 120, 220, 0.16);
+}
+.queue-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px 8px;
+}
+.queue-title {
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.queue-count {
+  min-width: 20px;
+  height: 17px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  border-radius: 9px;
+  color: var(--text-primary);
+  background: rgba(40, 90, 190, 0.35);
+  border: 1px solid rgba(90, 150, 255, 0.22);
+}
+.queue-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-right: 2px;
+}
+.queue-empty {
+  padding: 14px 8px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+/* Item de la cola */
+.queue-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 42px;
+  padding: 0 9px;
+  border-radius: 7px;
+  cursor: pointer;
+  background: linear-gradient(180deg, rgba(16, 42, 110, 0.18), rgba(8, 24, 72, 0.22));
+  border: 1px solid transparent;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+  animation: trackFadeIn 0.25s ease both;
+}
+.queue-item:hover {
+  background: linear-gradient(180deg, rgba(34, 78, 175, 0.32), rgba(16, 44, 120, 0.3));
+  border-color: rgba(90, 150, 255, 0.22);
+}
+.queue-item.dragging {
+  opacity: 0.45;
+}
+.queue-item.drag-over {
+  box-shadow: inset 0 2px 0 rgba(120, 190, 255, 0.9);
+}
+.queue-item.active {
+  background: linear-gradient(180deg, rgba(45, 100, 210, 0.42), rgba(22, 58, 150, 0.4));
+  border-color: rgba(120, 185, 255, 0.4);
+  box-shadow: inset 0 1px 0 rgba(180, 220, 255, 0.18), 0 0 14px rgba(50, 120, 255, 0.25);
+}
+
+.qi-platform {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.qi-cover {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 5px;
+  background: linear-gradient(135deg, rgba(40, 80, 170, 0.5), rgba(15, 35, 95, 0.6));
+  background-size: cover;
+  background-position: center;
+  border: 1px solid rgba(90, 150, 255, 0.2);
+  box-shadow: inset 0 1px 0 rgba(170, 210, 255, 0.12);
+}
+.qi-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.qi-title {
+  font-size: 11.5px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qi-artist {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qi-dur {
+  flex: 0 0 auto;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+/* Ecualizador animado de la cancion activa (3 barras) */
+.qi-eq {
+  flex: 0 0 auto;
+  display: none;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+  width: 14px;
+}
+.queue-item.active .qi-eq {
+  display: flex;
+}
+.queue-item.active .qi-dur {
+  display: none;
+}
+.qi-eq span {
+  width: 3px;
+  border-radius: 1px;
+  background: linear-gradient(180deg, rgba(150, 205, 255, 0.95), rgba(60, 130, 255, 0.7));
+  box-shadow: 0 0 5px rgba(80, 160, 255, 0.5);
+}
+.qi-eq span:nth-child(1) {
+  animation: eqBar1 0.9s ease-in-out infinite;
+}
+.qi-eq span:nth-child(2) {
+  animation: eqBar2 0.9s ease-in-out infinite;
+}
+.qi-eq span:nth-child(3) {
+  animation: eqBar3 0.9s ease-in-out infinite;
+}
+.queue-item.paused .qi-eq span {
+  animation-play-state: paused;
+}

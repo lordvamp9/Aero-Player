@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' aeromedia: data: blob: https://www.youtube.com https://*.ytimg.com https://i.scdn.co https://*.spotifycdn.com; img-src 'self' data: blob: https: aeromedia:; media-src 'self' aeromedia: blob: data: https:; script-src 'self' 'unsafe-inline' https://www.youtube.com https://s.ytimg.com https://sdk.scdn.co; style-src 'self' 'unsafe-inline'; frame-src https://www.youtube.com https://sdk.scdn.co; connect-src 'self' https:;"
+    />
+    <title>Aero Player</title>
+    <link rel="stylesheet" href="./styles/main.css" />
+    <link rel="stylesheet" href="./styles/glass.css" />
+    <link rel="stylesheet" href="./styles/animations.css" />
+    <link rel="stylesheet" href="./styles/sidebar.css" />
+    <link rel="stylesheet" href="./styles/player.css" />
+  </head>
+  <body>
+    <div class="app-window" id="app-window">
+      <!-- ===================== BARRA DE TITULO ===================== -->
+      <header class="titlebar">
+        <div class="titlebar-shine"></div>
+        <div class="titlebar-left">
+          <div class="app-glyph" aria-hidden="true">
+            <svg viewBox="0 0 32 32" width="18" height="18">
+              <defs>
+                <radialGradient id="discGrad" cx="50%" cy="40%" r="60%">
+                  <stop offset="0%" stop-color="#bfe0ff" />
+                  <stop offset="45%" stop-color="#3f86ff" />
+                  <stop offset="100%" stop-color="#0a2a78" />
+                </radialGradient>
+              </defs>
+              <circle cx="16" cy="16" r="14" fill="url(#discGrad)" stroke="rgba(180,220,255,.5)" stroke-width="1" />
+              <circle cx="16" cy="16" r="4.2" fill="#06122b" stroke="rgba(160,200,255,.6)" stroke-width="1" />
+              <circle cx="16" cy="16" r="1.4" fill="#bfe0ff" />
+            </svg>
+          </div>
+          <span class="app-title">Aero Player&nbsp;&nbsp;&#x22C6;&#x10659;&#x208A;&#x02DA;&#x2639;&#x2661;</span>
+        </div>
+
+        <div class="titlebar-right">
+          <button class="win-btn win-btn-min" id="btn-min" title="Minimizar" aria-label="Minimizar">
+            <span class="win-glyph">&#x2014;</span>
+          </button>
+          <button class="win-btn win-btn-max" id="btn-max" title="Maximizar" aria-label="Maximizar">
+            <span class="win-glyph">&#x25A1;</span>
+          </button>
+          <button class="win-btn win-btn-close" id="btn-close" title="Cerrar" aria-label="Cerrar">
+            <span class="win-glyph">&#x2715;</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- ===================== CUERPO PRINCIPAL ===================== -->
+      <div class="main-layout">
+        <!-- --------------------- SIDEBAR --------------------- -->
+        <aside class="sidebar glass-panel">
+          <div class="glass-shine-layer"></div>
+
+          <!-- Busqueda global -->
+          <div class="sidebar-search">
+            <span class="search-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="14" height="14">
+                <path
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  d="M10.5 3a7.5 7.5 0 1 0 4.7 13.35l4.22 4.22M10.5 3a7.5 7.5 0 0 1 4.95 13.13"
+                />
+              </svg>
+            </span>
+            <input id="global-search" type="text" placeholder="Buscar en todas las fuentes..." spellcheck="false" />
+          </div>
+
+          <div class="sidebar-scroll">
+            <!-- Seccion YouTube -->
+            <section class="src-section" data-source="youtube">
+              <div class="src-header">
+                <span class="src-logo">
+                  <svg viewBox="0 0 24 24" width="20" height="20">
+                    <path
+                      fill="#FF0000"
+                      d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"
+                    />
+                  </svg>
+                </span>
+                <span class="src-name">YouTube</span>
+                <span class="src-status" id="yt-status-dot"></span>
+              </div>
+              <div class="src-body" id="yt-body">
+                <button class="connect-btn connect-yt" id="btn-connect-yt">
+                  <svg viewBox="0 0 24 24" width="16" height="16">
+                    <path
+                      fill="#FF0000"
+                      d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"
+                    />
+                  </svg>
+                  <span>Conectar YouTube</span>
+                </button>
+                <ul class="src-list" id="yt-list" hidden>
+                  <li class="src-item" data-yt="liked"><span class="dot"></span>Me gusta</li>
+                  <li class="src-item" data-yt="watchlater"><span class="dot"></span>Ver mas tarde</li>
+                  <li class="src-item" data-yt="playlists"><span class="dot"></span>Mis playlists</li>
+                </ul>
+              </div>
+            </section>
+
+            <!-- Seccion Spotify -->
+            <section class="src-section" data-source="spotify">
+              <div class="src-header">
+                <span class="src-logo">
+                  <svg viewBox="0 0 24 24" width="20" height="20">
+                    <path
+                      fill="#1DB954"
+                      d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"
+                    />
+                  </svg>
+                </span>
+                <span class="src-name">Spotify</span>
+                <span class="src-status" id="sp-status-dot"></span>
+              </div>
+              <div class="src-body" id="sp-body">
+                <button class="connect-btn connect-sp" id="btn-connect-sp">
+                  <svg viewBox="0 0 24 24" width="16" height="16">
+                    <path
+                      fill="#1DB954"
+                      d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"
+                    />
+                  </svg>
+                  <span>Conectar Spotify</span>
+                </button>
+                <ul class="src-list" id="sp-list" hidden>
+                  <li class="src-item" data-sp="saved"><span class="dot"></span>Canciones guardadas</li>
+                  <li class="src-item" data-sp="playlists"><span class="dot"></span>Mis playlists</li>
+                  <li class="src-item" data-sp="albums"><span class="dot"></span>Albumes guardados</li>
+                </ul>
+              </div>
+            </section>
+
+            <!-- Seccion Biblioteca local -->
+            <section class="src-section" data-source="local">
+              <div class="src-header">
+                <span class="src-logo folder">
+                  <svg viewBox="0 0 24 24" width="18" height="18">
+                    <path
+                      fill="rgba(120,180,255,.9)"
+                      d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"
+                    />
+                    <path fill="rgba(180,220,255,.35)" d="M10 4H4a2 2 0 0 0-2 2v2h20V8a2 2 0 0 0-2-2h-8l-2-2z" />
+                  </svg>
+                </span>
+                <span class="src-name">Biblioteca local</span>
+              </div>
+              <div class="src-body">
+                <ul class="src-list">
+                  <li class="src-item active" data-local="all"><span class="dot"></span>Toda la musica</li>
+                  <li class="src-item" data-local="albums"><span class="dot"></span>Albumes</li>
+                  <li class="src-item" data-local="artists"><span class="dot"></span>Artistas</li>
+                  <li class="src-item" data-local="genres"><span class="dot"></span>Generos</li>
+                </ul>
+                <button class="add-folder-btn" id="btn-add-folder">
+                  <svg viewBox="0 0 24 24" width="14" height="14">
+                    <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 5v14M5 12h14" />
+                  </svg>
+                  <span>Agregar carpeta</span>
+                </button>
+              </div>
+            </section>
+          </div>
+
+          <!-- Cola de reproduccion -->
+          <div class="queue-block">
+            <div class="queue-head">
+              <span class="queue-title">Cola de reproduccion</span>
+              <span class="queue-count" id="queue-count">0</span>
+            </div>
+            <ul class="queue-list" id="queue-list"></ul>
+            <div class="queue-empty" id="queue-empty">La cola esta vacia. Agrega canciones desde tu biblioteca.</div>
+          </div>
+        </aside>
+
+        <!-- --------------------- ESCENARIO / CONTENIDO --------------------- -->
+        <main class="stage">
+          <canvas id="visualizer" class="visualizer-canvas"></canvas>
+
+          <!-- Capa de ahora suena (vista por defecto) -->
+          <section class="now-playing" id="now-playing-view">
+            <div class="np-disc-wrap">
+              <div class="np-disc" id="np-disc">
+                <div class="np-disc-art" id="np-disc-art"></div>
+                <div class="np-disc-hole"></div>
+              </div>
+            </div>
+            <div class="np-meta">
+              <div class="np-title" id="np-title">Aero Player</div>
+              <div class="np-artist" id="np-artist">Selecciona una pista para comenzar</div>
+              <div class="np-source" id="np-source"></div>
+            </div>
+          </section>
+
+          <!-- Capa de listas (biblioteca / playlists / resultados) -->
+          <section class="list-view glass-panel" id="list-view" hidden>
+            <div class="glass-shine-layer"></div>
+            <div class="list-view-head">
+              <h2 class="list-view-title" id="list-view-title">Toda la musica</h2>
+              <span class="list-view-count" id="list-view-count"></span>
+              <button class="list-view-close" id="list-view-close" title="Volver al visualizador">
+                <svg viewBox="0 0 24 24" width="14" height="14">
+                  <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              </button>
+            </div>
+            <div class="list-view-body" id="list-view-body"></div>
+          </section>
+
+          <!-- Selector de modo de visualizador -->
+          <div class="viz-selector glass-panel" id="viz-selector">
+            <div class="glass-shine-layer"></div>
+            <button class="viz-mode active" data-mode="liquid" title="Ondas liquidas">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                  d="M2 14c2.5-3 4-3 6 0s3.5 3 6 0 4-3 6 0M2 9c2.5-3 4-3 6 0s3.5 3 6 0 4-3 6 0" />
+              </svg>
+            </button>
+            <button class="viz-mode" data-mode="spectrum" title="Espectro de frecuencias">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <g fill="currentColor">
+                  <rect x="3" y="9" width="2.6" height="11" rx="1" />
+                  <rect x="8" y="5" width="2.6" height="15" rx="1" />
+                  <rect x="13" y="11" width="2.6" height="9" rx="1" />
+                  <rect x="18" y="7" width="2.6" height="13" rx="1" />
+                </g>
+              </svg>
+            </button>
+            <button class="viz-mode" data-mode="waveform" title="Forma de onda">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                  d="M2 12c1.5 0 1.5-7 3-7s1.5 14 3 14 1.5-11 3-11 1.5 7 3 7 1.5-5 3-5 1.5 3 2 3" />
+              </svg>
+            </button>
+            <button class="viz-mode" data-mode="orbital" title="Particulas orbitales">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <g fill="none" stroke="currentColor" stroke-width="1.6">
+                  <ellipse cx="12" cy="12" rx="9" ry="4" />
+                  <ellipse cx="12" cy="12" rx="4" ry="9" />
+                </g>
+                <circle cx="12" cy="12" r="2.2" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+        </main>
+      </div>
+
+      <!-- ===================== PANEL DE CONTROLES ===================== -->
+      <footer class="player-bar glass-panel">
+        <div class="glass-shine-layer"></div>
+
+        <!-- Barra de progreso -->
+        <div class="progress-row">
+          <span class="time time-current" id="time-current">0:00</span>
+          <div class="progress-rail" id="progress-rail">
+            <div class="progress-fill" id="progress-fill"></div>
+            <div class="progress-knob" id="progress-knob"></div>
+          </div>
+          <span class="time time-total" id="time-total">0:00</span>
+        </div>
+
+        <!-- Controles -->
+        <div class="controls-row">
+          <div class="np-mini" id="np-mini">
+            <div class="np-mini-cover" id="np-mini-cover"></div>
+            <div class="np-mini-text">
+              <span class="np-mini-title" id="np-mini-title">Sin reproduccion</span>
+              <span class="np-mini-artist" id="np-mini-artist">Aero Player</span>
+            </div>
+          </div>
+
+          <div class="transport">
+            <button class="ctrl-btn" id="btn-shuffle" title="Aleatorio">
+              <svg viewBox="0 0 24 24" width="18" height="18">
+                <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                  d="M16 3h5v5M21 3l-7 7M16 21h5v-5M21 21l-7-7M3 7l4 4M3 17l11-11" />
+              </svg>
+            </button>
+            <button class="ctrl-btn" id="btn-prev" title="Anterior">
+              <svg viewBox="0 0 24 24" width="20" height="20">
+                <path fill="currentColor" d="M6 5h2v14H6zM20 5v14L9 12z" />
+              </svg>
+            </button>
+            <button class="ctrl-btn play-btn" id="btn-play" title="Reproducir">
+              <svg class="icon-play" viewBox="0 0 24 24" width="26" height="26">
+                <path fill="currentColor" d="M8 5v14l11-7z" />
+              </svg>
+              <svg class="icon-pause" viewBox="0 0 24 24" width="26" height="26" hidden>
+                <path fill="currentColor" d="M7 5h4v14H7zM13 5h4v14h-4z" />
+              </svg>
+            </button>
+            <button class="ctrl-btn" id="btn-next" title="Siguiente">
+              <svg viewBox="0 0 24 24" width="20" height="20">
+                <path fill="currentColor" d="M16 5h2v14h-2zM4 5l11 7L4 19z" />
+              </svg>
+            </button>
+            <button class="ctrl-btn" id="btn-repeat" title="Repetir">
+              <svg viewBox="0 0 24 24" width="18" height="18">
+                <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                  d="M17 2l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="right-cluster">
+            <button class="ctrl-btn vol-icon" id="btn-mute" title="Silenciar">
+              <svg viewBox="0 0 24 24" width="18" height="18" id="vol-icon-svg">
+                <path fill="currentColor" d="M4 9v6h4l5 5V4L8 9H4z" />
+                <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" />
+              </svg>
+            </button>
+            <div class="volume-rail" id="volume-rail">
+              <div class="volume-fill" id="volume-fill"></div>
+              <div class="volume-knob" id="volume-knob"></div>
+            </div>
+          </div>
+        </div>
+      </footer>
+
+      <!-- ===================== BARRA DE ESTADO ===================== -->
+      <div class="statusbar">
+        <span class="status-left" id="status-left">Cola: 0 canciones &middot; 0 fuentes &middot; 0:00 duracion total</span>
+        <span class="status-center" id="status-center">Aero Player listo</span>
+        <span class="status-right" id="status-right">&mdash;</span>
+      </div>
+    </div>
+
+    <!-- Contenedor de notificaciones toast -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Menu contextual glass -->
+    <div class="context-menu glass-panel" id="context-menu" hidden>
+      <div class="glass-shine-layer"></div>
+    </div>
+
+    <!-- Contenedor oculto del reproductor de YouTube -->
+    <div id="yt-player-host" class="yt-host"></div>
+    <audio id="audio-element" crossorigin="anonymous"></audio>
+
+    <script type="module" src="./js/app.js"></script>
+  </body>
+</html>
