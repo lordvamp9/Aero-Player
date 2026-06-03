@@ -44,14 +44,26 @@
   }
 }
 
-/* 3. Pulso del boton play cuando esta reproduciendo */
+/* 3. Pulso del boton play cuando esta reproduciendo (muy sutil) */
 @keyframes playPulse {
   0%,
   100% {
-    box-shadow: 0 0 14px rgba(40, 110, 230, 0.35), inset 0 1px 0 rgba(180, 220, 255, 0.2);
+    box-shadow: 0 0 16px rgba(50, 120, 230, 0.16), inset 0 1px 0 rgba(190, 225, 255, 0.16);
   }
   50% {
-    box-shadow: 0 0 22px rgba(60, 140, 255, 0.55), inset 0 1px 0 rgba(200, 235, 255, 0.28);
+    box-shadow: 0 0 24px rgba(70, 145, 255, 0.32), inset 0 1px 0 rgba(200, 230, 255, 0.2);
+  }
+}
+
+/* 3b. Entrada suave de la portada */
+@keyframes coverIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
   }
 }
 
@@ -88,16 +100,6 @@
   }
   100% {
     opacity: 0.08;
-  }
-}
-
-/* 7. Rotacion sutil del disco de album art */
-@keyframes discSpin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
   }
 }
 

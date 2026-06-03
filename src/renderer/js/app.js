@@ -67,11 +67,9 @@ function cacheElements() {
     // Escenario
     canvas: id('visualizer'),
     nowPlaying: id('now-playing-view'),
-    npDisc: id('np-disc'),
-    npDiscArt: id('np-disc-art'),
+    npCover: id('np-cover'),
     npTitle: id('np-title'),
     npArtist: id('np-artist'),
-    npSource: id('np-source'),
     listView: id('list-view'),
     listViewTitle: id('list-view-title'),
     listViewCount: id('list-view-count'),

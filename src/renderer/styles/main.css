@@ -11,11 +11,11 @@
   --glass-bg-light: rgba(10, 22, 55, 0.9);
   --glass-surface: rgba(20, 50, 140, 0.18);
 
-  /* --- Bordes y brillos --- */
-  --glass-border: rgba(80, 140, 255, 0.18);
-  --glass-border-hi: rgba(140, 200, 255, 0.28);
-  --glass-shine-top: rgba(180, 220, 255, 0.12);
-  --glass-shine-edge: rgba(140, 190, 255, 0.08);
+  /* --- Bordes y brillos (sutiles, para un cristal liviano) --- */
+  --glass-border: rgba(120, 175, 255, 0.1);
+  --glass-border-hi: rgba(150, 200, 255, 0.18);
+  --glass-shine-top: rgba(185, 220, 255, 0.07);
+  --glass-shine-edge: rgba(150, 195, 255, 0.05);
 
   /* --- Texto --- */
   --text-primary: rgba(200, 225, 255, 0.92);
@@ -106,10 +106,9 @@ ul {
   flex-direction: column;
   overflow: hidden;
   background:
-    radial-gradient(1200px 600px at 78% -8%, rgba(28, 78, 190, 0.28), transparent 60%),
-    radial-gradient(900px 700px at 8% 110%, rgba(18, 52, 150, 0.26), transparent 62%),
-    radial-gradient(700px 500px at 50% 50%, rgba(12, 36, 105, 0.18), transparent 70%),
-    linear-gradient(160deg, #051026 0%, #030a1c 45%, #020714 100%);
+    radial-gradient(1300px 650px at 80% -10%, rgba(30, 80, 185, 0.2), transparent 62%),
+    radial-gradient(1000px 750px at 6% 112%, rgba(20, 55, 150, 0.18), transparent 64%),
+    linear-gradient(160deg, #07122a 0%, #050d20 50%, #03091a 100%);
   animation: windowOpen 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
@@ -139,12 +138,11 @@ ul {
   -webkit-app-region: drag;
   background: linear-gradient(
     180deg,
-    rgba(55, 105, 215, 0.6) 0%,
-    rgba(25, 62, 165, 0.7) 45%,
-    rgba(14, 42, 125, 0.8) 100%
+    rgba(42, 82, 168, 0.34) 0%,
+    rgba(22, 52, 132, 0.4) 100%
   );
-  border-bottom: 1px solid rgba(80, 140, 255, 0.22);
-  box-shadow: inset 0 -1px 0 rgba(0, 14, 60, 0.5), 0 1px 0 rgba(0, 8, 30, 0.5);
+  border-bottom: 1px solid rgba(110, 165, 255, 0.1);
+  box-shadow: inset 0 -1px 0 rgba(0, 12, 45, 0.25);
   z-index: 20;
 }
 
@@ -154,7 +152,7 @@ ul {
   left: 0;
   right: 0;
   height: 50%;
-  background: linear-gradient(180deg, rgba(190, 225, 255, 0.16), transparent);
+  background: linear-gradient(180deg, rgba(190, 225, 255, 0.08), transparent);
   pointer-events: none;
 }
 

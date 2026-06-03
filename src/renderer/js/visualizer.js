@@ -207,60 +207,58 @@ function drawLiquid() {
   const freq = getFrequency()
   const energy = bassEnergy(freq)
 
-  // Glow radial en el centro inferior
-  const glow = g.createRadialGradient(width / 2, height * 1.05, 0, width / 2, height * 1.05, height * 0.9)
-  glow.addColorStop(0, `rgba(40, 110, 235, ${0.18 + energy * 0.22})`)
-  glow.addColorStop(1, 'rgba(40, 110, 235, 0)')
+  // Glow radial muy tenue en el centro inferior
+  const glow = g.createRadialGradient(width / 2, height * 1.08, 0, width / 2, height * 1.08, height * 0.85)
+  glow.addColorStop(0, `rgba(46, 112, 225, ${0.07 + energy * 0.1})`)
+  glow.addColorStop(1, 'rgba(46, 112, 225, 0)')
   g.fillStyle = glow
   g.fillRect(0, 0, width, height)
 
+  // Ondas suaves que solo insinuan movimiento en la franja inferior.
   const layers = [
-    { amp: 26, speed: 0.020, freqX: 1.4, phase: 0.0, alpha: 0.10, base: 0.62 },
-    { amp: 34, speed: 0.015, freqX: 1.9, phase: 1.1, alpha: 0.12, base: 0.68 },
-    { amp: 22, speed: 0.026, freqX: 2.6, phase: 2.3, alpha: 0.14, base: 0.74 },
-    { amp: 40, speed: 0.012, freqX: 1.1, phase: 3.4, alpha: 0.10, base: 0.80 },
-    { amp: 18, speed: 0.032, freqX: 3.3, phase: 4.6, alpha: 0.16, base: 0.86 },
+    { amp: 12, speed: 0.016, freqX: 1.2, phase: 0.0, alpha: 0.05, base: 0.82 },
+    { amp: 16, speed: 0.012, freqX: 1.6, phase: 1.3, alpha: 0.05, base: 0.87 },
+    { amp: 10, speed: 0.02, freqX: 2.2, phase: 2.6, alpha: 0.06, base: 0.91 },
+    { amp: 18, speed: 0.01, freqX: 1.0, phase: 3.7, alpha: 0.045, base: 0.95 },
+    { amp: 8, speed: 0.026, freqX: 3.0, phase: 4.9, alpha: 0.06, base: 0.98 },
   ]
 
   layers.forEach((L, li) => {
-    const boost = 1 + energy * 1.4
+    const boost = 1 + energy * 0.7
     const baseY = height * L.base
     g.beginPath()
     g.moveTo(0, height)
-    for (let x = 0; x <= width; x += 6) {
+    for (let x = 0; x <= width; x += 8) {
       const nx = x / width
       const y =
         baseY -
         Math.sin(nx * Math.PI * L.freqX * 2 + t * L.speed + L.phase) * L.amp * boost -
-        Math.sin(nx * Math.PI * L.freqX * 5 + t * L.speed * 1.7) * (L.amp * 0.25)
+        Math.sin(nx * Math.PI * L.freqX * 5 + t * L.speed * 1.7) * (L.amp * 0.2)
       g.lineTo(x, y)
     }
     g.lineTo(width, height)
     g.closePath()
 
-    const grad = g.createLinearGradient(0, baseY - 60, 0, height)
-    grad.addColorStop(0, `rgba(${20 + li * 12}, ${90 + li * 18}, 235, ${L.alpha + 0.04})`)
-    grad.addColorStop(1, `rgba(20, 60, 200, 0)`)
+    const grad = g.createLinearGradient(0, baseY - 50, 0, height)
+    grad.addColorStop(0, `rgba(${50 + li * 10}, ${120 + li * 16}, 235, ${L.alpha + 0.02})`)
+    grad.addColorStop(1, 'rgba(30, 70, 200, 0)')
     g.fillStyle = grad
     g.fill()
 
-    // Cresta con highlight blanco-azul
+    // Cresta apenas insinuada, sin glow marcado.
     g.beginPath()
-    for (let x = 0; x <= width; x += 6) {
+    for (let x = 0; x <= width; x += 8) {
       const nx = x / width
       const y =
         baseY -
         Math.sin(nx * Math.PI * L.freqX * 2 + t * L.speed + L.phase) * L.amp * boost -
-        Math.sin(nx * Math.PI * L.freqX * 5 + t * L.speed * 1.7) * (L.amp * 0.25)
+        Math.sin(nx * Math.PI * L.freqX * 5 + t * L.speed * 1.7) * (L.amp * 0.2)
       if (x === 0) g.moveTo(x, y)
       else g.lineTo(x, y)
     }
-    g.strokeStyle = `rgba(150, 200, 255, ${0.10 + L.alpha})`
-    g.lineWidth = 1.4
-    g.shadowColor = 'rgba(120, 180, 255, 0.5)'
-    g.shadowBlur = 8
+    g.strokeStyle = `rgba(150, 200, 255, ${0.05 + L.alpha})`
+    g.lineWidth = 1
     g.stroke()
-    g.shadowBlur = 0
   })
 
   drawParticles(energy)
@@ -288,12 +286,12 @@ function drawParticles(energy) {
     if (p.y < -0.05) Object.assign(p, newParticle(false))
     const px = p.x * width
     const py = p.y * height
-    const a = (0.2 + 0.5 * Math.abs(Math.sin(p.life))) * (0.5 + energy)
+    const a = (0.12 + 0.32 * Math.abs(Math.sin(p.life))) * (0.5 + energy)
     g.beginPath()
-    g.arc(px, py, p.r, 0, Math.PI * 2)
-    g.fillStyle = `rgba(170, 210, 255, ${Math.min(0.7, a)})`
-    g.shadowColor = 'rgba(120, 180, 255, 0.7)'
-    g.shadowBlur = 6
+    g.arc(px, py, p.r * 0.85, 0, Math.PI * 2)
+    g.fillStyle = `rgba(175, 212, 255, ${Math.min(0.4, a)})`
+    g.shadowColor = 'rgba(120, 180, 255, 0.45)'
+    g.shadowBlur = 4
     g.fill()
     g.shadowBlur = 0
   })

@@ -236,7 +236,6 @@ function setPlaying(playing) {
   ctx.els.iconPause.hidden = !playing
   ctx.els.btnPlay.classList.toggle('playing', playing)
   ctx.els.btnPlay.title = playing ? 'Pausar' : 'Reproducir'
-  ctx.els.npDisc.classList.toggle('spinning', playing)
   ctx.emit('play-state', playing)
 
   if (playing) startProgressLoop()
@@ -245,18 +244,25 @@ function setPlaying(playing) {
 
 function updateNowPlaying(item) {
   const cover = item.coverUrl ? `url("${item.coverUrl}")` : ''
-  ctx.els.npDiscArt.style.backgroundImage = cover
+  // Portada central al reproducir: caratula si existe, o un icono tenue.
+  if (item.coverUrl) {
+    ctx.els.npCover.style.backgroundImage = cover
+    ctx.els.npCover.innerHTML = ''
+  } else {
+    ctx.els.npCover.style.backgroundImage = ''
+    ctx.els.npCover.innerHTML = `<span class="np-cover-fallback">${platformIcon(item.source, 46)}</span>`
+  }
+  ctx.els.npCover.hidden = false
+  // Reinicia la animacion de entrada.
+  ctx.els.npCover.style.animation = 'none'
+  void ctx.els.npCover.offsetWidth
+  ctx.els.npCover.style.animation = ''
+
   ctx.els.npMiniCover.style.backgroundImage = cover
   ctx.els.npTitle.textContent = item.title
   ctx.els.npArtist.textContent = item.artist
   ctx.els.npMiniTitle.textContent = item.title
   ctx.els.npMiniArtist.textContent = item.artist
-  ctx.els.npSource.innerHTML = `${platformIcon(item.source, 13)} <span>${sourceLabel(
-    item.source
-  )}</span>`
-  ctx.els.npSource.style.display = 'inline-flex'
-  ctx.els.npSource.style.alignItems = 'center'
-  ctx.els.npSource.style.gap = '6px'
 
   ctx.els.statusCenter.textContent = `${item.artist} — ${item.title}`
   ctx.els.statusRight.textContent = statusRightText(item)
@@ -269,10 +275,6 @@ function statusRightText(item) {
   if (item.codec) parts.push(String(item.codec).toUpperCase())
   if (item.bitrate) parts.push(item.bitrate + ' kbps')
   return parts.join(' · ') || 'Archivo local'
-}
-
-function sourceLabel(source) {
-  return source === 'youtube' ? 'YouTube' : source === 'spotify' ? 'Spotify' : 'Biblioteca local'
 }
 
 // ---------------------------------------------------------------------
@@ -436,7 +438,6 @@ function wireAudioEvents() {
       ctx.els.iconPlay.hidden = false
       ctx.els.iconPause.hidden = true
       ctx.els.btnPlay.classList.remove('playing')
-      ctx.els.npDisc.classList.remove('spinning')
       ctx.emit('play-state', false)
     }
   })
