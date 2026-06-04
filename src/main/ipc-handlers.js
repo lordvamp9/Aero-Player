@@ -120,6 +120,12 @@ function registerIpcHandlers(mainWindow) {
     }
   })
 
+  // ---- Estado de Widevine (DRM necesario para Spotify Web Playback) ----
+  ipcMain.handle('get-widevine-status', async () => ({
+    ready: !!global.widevineReady,
+    error: global.widevineError || null,
+  }))
+
   // ---- Persistencia ----
   ipcMain.handle('store-get', async (_e, key) => store.get(key))
   ipcMain.handle('store-set', async (_e, key, value) => {

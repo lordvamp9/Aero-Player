@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="./styles/sidebar.css" />
     <link rel="stylesheet" href="./styles/player.css" />
     <link rel="stylesheet" href="./styles/playlists.css" />
+    <link rel="stylesheet" href="./styles/settings.css" />
   </head>
   <body>
     <div class="app-window" id="app-window">
@@ -39,6 +40,16 @@
         </div>
 
         <div class="titlebar-right">
+          <button class="titlebar-profile" id="titlebar-profile" title="Mi perfil" aria-label="Mi perfil">
+            <span class="tp-avatar" id="tp-avatar"></span>
+            <span class="tp-name" id="tp-name">Invitado</span>
+          </button>
+          <button class="titlebar-gear" id="btn-settings" title="Ajustes" aria-label="Ajustes">
+            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+              <path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+                d="M12 9.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6zM19.4 12c0-.45-.04-.88-.1-1.3l2.04-1.55-2-3.46-2.4.9a7.4 7.4 0 0 0-2.24-1.3l-.36-2.55h-4l-.36 2.55c-.82.3-1.57.74-2.24 1.3l-2.4-.9-2 3.46L4.7 10.7c-.06.42-.1.85-.1 1.3s.04.88.1 1.3L2.66 14.85l2 3.46 2.4-.9c.67.56 1.42 1 2.24 1.3l.36 2.55h4l.36-2.55c.82-.3 1.57-.74 2.24-1.3l2.4.9 2-3.46-2.04-1.55c.06-.42.1-.85.1-1.3z" />
+            </svg>
+          </button>
           <button class="win-btn win-btn-min" id="btn-min" title="Minimizar" aria-label="Minimizar">
             <span class="win-glyph">&#x2014;</span>
           </button>
@@ -285,12 +296,13 @@
                 <path fill="currentColor" d="M6 5h2v14H6zM20 5v14L9 12z" />
               </svg>
             </button>
-            <button class="ctrl-btn play-btn" id="btn-play" title="Reproducir">
-              <svg class="icon-play" viewBox="0 0 24 24" width="22" height="22">
-                <path fill="currentColor" d="M8 5v14l11-7z" />
+            <button class="ctrl-btn play-btn" id="btn-play" title="Reproducir" aria-label="Reproducir">
+              <svg class="icon-play" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                <path fill="currentColor" d="M8.4 5.3v13.4c0 .55.62.86 1.06.53l9.9-6.7a.64.64 0 0 0 0-1.06L9.46 4.77a.64.64 0 0 0-1.06.53z" />
               </svg>
-              <svg class="icon-pause" viewBox="0 0 24 24" width="22" height="22" hidden>
-                <path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+              <svg class="icon-pause" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                <rect x="6.8" y="5" width="3.4" height="14" rx="1.1" fill="currentColor" />
+                <rect x="13.8" y="5" width="3.4" height="14" rx="1.1" fill="currentColor" />
               </svg>
             </button>
             <button class="ctrl-btn" id="btn-next" title="Siguiente">
@@ -336,6 +348,110 @@
     <!-- Menu contextual glass -->
     <div class="context-menu glass-panel" id="context-menu" hidden>
       <div class="glass-shine-layer"></div>
+    </div>
+
+    <!-- ===================== PANEL DE AJUSTES ===================== -->
+    <div class="settings-overlay" id="settings-overlay" hidden>
+      <div class="settings-panel glass-panel" id="settings-panel" role="dialog" aria-label="Ajustes">
+        <div class="glass-shine-layer"></div>
+        <header class="settings-head">
+          <h2>Ajustes</h2>
+          <button class="settings-close" id="settings-close" title="Cerrar" aria-label="Cerrar">
+            <svg viewBox="0 0 24 24" width="14" height="14">
+              <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </header>
+
+        <div class="settings-body">
+          <!-- Bloque: Perfil -->
+          <section class="settings-section">
+            <h3>Perfil</h3>
+            <div class="settings-row settings-profile-row">
+              <span class="settings-profile-avatar" id="settings-profile-avatar"></span>
+              <div class="settings-profile-meta">
+                <span class="settings-profile-name" id="settings-profile-name">Invitado</span>
+                <span class="settings-profile-hint">Tu identidad dentro de Aero Player.</span>
+              </div>
+              <button class="settings-btn" id="btn-edit-profile">Modificar perfil</button>
+            </div>
+          </section>
+
+          <!-- Bloque: Cuentas -->
+          <section class="settings-section">
+            <h3>Cuentas conectadas</h3>
+            <div class="settings-row">
+              <span class="settings-account">
+                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="#FF0000" d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                <span>YouTube <em id="settings-yt-state">no conectado</em></span>
+              </span>
+              <button class="settings-btn settings-btn-danger" id="btn-logout-yt" disabled>Cerrar sesion</button>
+            </div>
+            <div class="settings-row">
+              <span class="settings-account">
+                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="#1DB954" d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+                <span>Spotify <em id="settings-sp-state">no conectado</em></span>
+              </span>
+              <button class="settings-btn settings-btn-danger" id="btn-logout-sp" disabled>Cerrar sesion</button>
+            </div>
+          </section>
+
+          <!-- Bloque: Ecualizador -->
+          <section class="settings-section">
+            <header class="eq-header">
+              <h3>Ecualizador</h3>
+              <label class="eq-toggle" title="Activar / desactivar EQ">
+                <input type="checkbox" id="eq-enabled" />
+                <span class="eq-toggle-track"><span class="eq-toggle-thumb"></span></span>
+              </label>
+            </header>
+            <p class="eq-note">Aplicable a archivos locales. YouTube y Spotify usan su propio motor de audio.</p>
+            <div class="eq-curve">
+              <canvas id="eq-canvas"></canvas>
+            </div>
+            <div class="eq-bands" id="eq-bands"></div>
+            <div class="eq-actions">
+              <button class="settings-btn settings-btn-ghost" id="eq-reset">Restablecer</button>
+              <span class="eq-presets" id="eq-presets"></span>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== MODAL EDITAR PERFIL ===================== -->
+    <div class="settings-overlay profile-overlay" id="profile-overlay" hidden>
+      <div class="profile-card glass-panel" role="dialog" aria-label="Editar perfil">
+        <div class="glass-shine-layer"></div>
+        <header class="profile-head">
+          <h2 id="profile-card-title">Editar perfil</h2>
+          <button class="settings-close" id="profile-close" title="Cerrar" aria-label="Cerrar">
+            <svg viewBox="0 0 24 24" width="14" height="14">
+              <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </header>
+        <div class="profile-body">
+          <button class="profile-avatar-pick" id="profile-avatar-pick" type="button" title="Cambiar foto">
+            <span class="profile-avatar-img" id="profile-avatar-preview"></span>
+            <span class="profile-avatar-edit">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                  d="M3 19v-3l11-11 3 3-11 11H3zM14 5l3 3" />
+              </svg>
+              <span>Cambiar foto</span>
+            </span>
+          </button>
+          <label class="profile-field">
+            <span>Nombre</span>
+            <input type="text" id="profile-name-input" maxlength="40" placeholder="Como te llamamos?" spellcheck="false" />
+          </label>
+        </div>
+        <footer class="profile-foot">
+          <button class="settings-btn settings-btn-ghost" id="profile-cancel">Cancelar</button>
+          <button class="settings-btn settings-btn-primary" id="profile-save">Guardar</button>
+        </footer>
+      </div>
     </div>
 
     <!-- Contenedor oculto del reproductor de YouTube -->

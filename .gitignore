@@ -4,5 +4,7 @@ dist/
 dist-electron/
 release/
 *.log
+*.exe
+*.blockmap
 .DS_Store
 Thumbs.db

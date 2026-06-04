@@ -67,6 +67,16 @@
   }
 }
 
+/* 3c. Flotacion sutil de la portada (le da vida sin distraer) */
+@keyframes coverFloat {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.005);
+  }
+}
+
 /* 4. Parpadeo del cristal en el knob de progreso */
 @keyframes knobGlow {
   0%,

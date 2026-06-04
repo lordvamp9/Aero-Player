@@ -45,17 +45,19 @@
 
 /* Portada de la pista activa: cuadrado suave, sin estridencias */
 .np-cover {
-  width: 168px;
-  height: 168px;
-  border-radius: 16px;
+  width: 172px;
+  height: 172px;
+  border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   background-size: cover;
   background-position: center;
   background-color: rgba(18, 38, 82, 0.4);
-  box-shadow: 0 18px 50px rgba(0, 12, 45, 0.4);
-  animation: coverIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  box-shadow: 0 18px 50px rgba(0, 12, 45, 0.45),
+              0 0 0 1px rgba(140, 190, 255, 0.08),
+              inset 0 1px 0 rgba(190, 225, 255, 0.1);
+  animation: coverIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both, coverFloat 7s ease-in-out 0.6s infinite;
 }
 .np-cover-fallback {
   opacity: 0.45;
@@ -359,7 +361,10 @@
   justify-content: center;
   border-radius: 50%;
   color: var(--text-muted);
-  transition: color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+  transition: color 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              background 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.22s ease;
 }
 .ctrl-btn:hover {
   color: var(--text-primary);
@@ -389,9 +394,17 @@
   box-shadow: 0 0 24px rgba(70, 145, 255, 0.3), inset 0 1px 0 rgba(200, 230, 255, 0.22);
 }
 .play-btn svg {
-  position: relative;
+  position: absolute;
   z-index: 1;
+  transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
 }
+/* Estado por defecto: muestra el icono de play, oculta el de pausa */
+.play-btn .icon-play { opacity: 1; transform: scale(1); }
+.play-btn .icon-pause { opacity: 0; transform: scale(0.7); }
+/* En reproduccion: muestra el icono de pausa */
+.play-btn.playing .icon-play { opacity: 0; transform: scale(0.7); }
+.play-btn.playing .icon-pause { opacity: 1; transform: scale(1); }
 .play-btn.playing {
   animation: playPulse 3.4s ease-in-out infinite;
 }

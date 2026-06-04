@@ -13,9 +13,22 @@ let ctx
 let audio
 
 // Grafo de Web Audio (se crea una sola vez sobre el elemento <audio>).
+//   source -> [eq filters en serie] -> analyser -> destination
+// El ecualizador es opcional: si no esta configurado, source se conecta
+// directamente al analyser y el sonido pasa sin tocar.
 let audioCtx = null
 let analyser = null
 let sourceNode = null
+let eqFilters = [] // array de BiquadFilterNode (uno por banda)
+let eqEnabled = false
+
+// Analyser independiente alimentado por la captura de audio del sistema
+// (loopback) para visualizar Spotify / YouTube. Se inicia bajo demanda en
+// la primera reproduccion externa y se reusa despues.
+let loopbackAnalyser = null
+let loopbackStream = null
+let loopbackSource = null
+let loopbackRequested = false
 
 let progressRAF = null
 let scrubbing = false
@@ -48,6 +61,13 @@ export function initPlayer(context) {
     isLocalActive: () => getCurrent()?.source === 'local' && ctx.state.isPlaying,
   }
 
+  // Ecualizador: API independiente para que el panel de Settings lo controle
+  // sin tener que conocer el grafo interno.
+  ctx.eq = {
+    apply: applyEqBands, // (bandsArray) => void
+    setEnabled: setEqEnabled,
+    isEnabled: () => eqEnabled,
+  }
 }
 
 // ---------------------------------------------------------------------
@@ -64,20 +84,167 @@ function ensureAudioGraph() {
   sourceNode.connect(analyser)
   analyser.connect(audioCtx.destination)
   window._aeroAnalyser = analyser
+  // Si el panel de settings ya pidio bandas antes de que existiera el grafo,
+  // las aplicamos ahora.
+  if (pendingBands) {
+    applyEqBands(pendingBands)
+    pendingBands = null
+  }
+}
+
+// Espera que arranque el AudioContext: si todavia no existe (no se ha
+// reproducido nada local) lo creamos solo para poder configurar el EQ
+// sin necesidad de tener una pista en curso.
+let pendingBands = null
+function ensureGraphForEq() {
+  if (audioCtx) return true
+  try {
+    ensureAudioGraph()
+    return true
+  } catch {
+    return false
+  }
+}
+
+// Reconfigura la cadena de filtros del ecualizador.
+//   bands: [{ freq: 30, gain: -12..+12, type?: 'lowshelf'|'peaking'|'highshelf' }]
+// Reconecta source -> filter1 -> ... -> analyser. Si la lista esta vacia o el
+// EQ esta desactivado, vuelve a la conexion directa source -> analyser.
+let lastBands = null
+function applyEqBands(bands) {
+  if (bands) lastBands = bands
+  if (!audioCtx) {
+    pendingBands = bands || lastBands
+    return
+  }
+  // Si el EQ esta apagado solo guardamos las bandas; evita disconnect/reconnect
+  // del grafo en vivo, que puede causar microcortes audibles durante la edicion.
+  if (!eqEnabled) {
+    if (eqFilters.length) {
+      try { sourceNode.disconnect() } catch {}
+      eqFilters.forEach((f) => { try { f.disconnect() } catch {} })
+      eqFilters = []
+      sourceNode.connect(analyser)
+    }
+    return
+  }
+
+  // EQ encendido: si el numero de bandas coincide, actualizamos in-place
+  // (cambiar gain de un BiquadFilter no produce click). Solo reconectamos
+  // cuando cambia el numero de filtros.
+  if (eqFilters.length === (bands ? bands.length : 0) && bands && bands.length) {
+    bands.forEach((b, i) => {
+      const f = eqFilters[i]
+      if (f.frequency.value !== b.freq) f.frequency.value = b.freq
+      const target = Math.max(-18, Math.min(18, b.gain || 0))
+      // setTargetAtTime suaviza el cambio para evitar zippers al arrastrar
+      try {
+        f.gain.setTargetAtTime(target, audioCtx.currentTime, 0.015)
+      } catch {
+        f.gain.value = target
+      }
+    })
+    return
+  }
+
+  try { sourceNode.disconnect() } catch {}
+  eqFilters.forEach((f) => { try { f.disconnect() } catch {} })
+
+  if (!bands || !bands.length) {
+    sourceNode.connect(analyser)
+    eqFilters = []
+    return
+  }
+
+  // Crea filtros nuevos (mas barato que reusar y rearmar)
+  eqFilters = bands.map((b, i) => {
+    const node = audioCtx.createBiquadFilter()
+    if (i === 0) node.type = 'lowshelf'
+    else if (i === bands.length - 1) node.type = 'highshelf'
+    else node.type = 'peaking'
+    node.frequency.value = b.freq
+    node.Q.value = 1.1
+    node.gain.value = Math.max(-18, Math.min(18, b.gain || 0))
+    return node
+  })
+
+  // source -> f0 -> f1 -> ... -> analyser
+  let prev = sourceNode
+  for (const f of eqFilters) {
+    prev.connect(f)
+    prev = f
+  }
+  prev.connect(analyser)
+}
+
+function setEqEnabled(on, bands) {
+  eqEnabled = !!on
+  const use = bands || lastBands || []
+  if (audioCtx) applyEqBands(use)
+  else if (use.length) pendingBands = use
+}
+
+// Devuelve el analyser que esta sonando en este momento. Para local usa el
+// analyser del grafo propio; para Spotify/YouTube usa el de la captura de
+// audio del sistema (si esta lista).
+function activeAnalyser() {
+  const cur = getCurrent()
+  if (!cur || !ctx.state.isPlaying) return null
+  if (cur.source === 'local') return analyser
+  return loopbackAnalyser // puede ser null si aun no se autorizo la captura
 }
 
 function getFrequencyData() {
-  if (!analyser || !ctx.player.isLocalActive()) return null
-  const arr = new Uint8Array(analyser.frequencyBinCount)
-  analyser.getByteFrequencyData(arr)
+  const a = activeAnalyser()
+  if (!a) return null
+  const arr = new Uint8Array(a.frequencyBinCount)
+  a.getByteFrequencyData(arr)
   return arr
 }
 
 function getTimeDomainData() {
-  if (!analyser || !ctx.player.isLocalActive()) return null
-  const arr = new Uint8Array(analyser.fftSize)
-  analyser.getByteTimeDomainData(arr)
+  const a = activeAnalyser()
+  if (!a) return null
+  const arr = new Uint8Array(a.fftSize)
+  a.getByteTimeDomainData(arr)
   return arr
+}
+
+// ---------------------------------------------------------------------
+// Captura de audio del sistema (para visualizador en YouTube/Spotify)
+// ---------------------------------------------------------------------
+async function ensureLoopbackAnalyser() {
+  if (loopbackAnalyser || loopbackRequested) return
+  loopbackRequested = true
+  try {
+    // El main process aprueba esta peticion con audio: 'loopback'.
+    const stream = await navigator.mediaDevices.getDisplayMedia({
+      video: true,
+      audio: true,
+    })
+    // Descartamos cualquier pista de video; solo nos interesa el audio.
+    stream.getVideoTracks().forEach((t) => t.stop())
+    const audioTracks = stream.getAudioTracks()
+    if (!audioTracks.length) {
+      loopbackRequested = false
+      return
+    }
+    const AC = window.AudioContext || window.webkitAudioContext
+    const lbCtx = audioCtx || new AC()
+    if (!audioCtx) audioCtx = lbCtx
+    loopbackStream = new MediaStream(audioTracks)
+    loopbackSource = lbCtx.createMediaStreamSource(loopbackStream)
+    loopbackAnalyser = lbCtx.createAnalyser()
+    loopbackAnalyser.fftSize = 2048
+    loopbackAnalyser.smoothingTimeConstant = 0.78
+    // No conectamos a destination para no devolver el audio (evita el bucle
+    // de retroalimentacion; solo se usa para visualizar).
+    loopbackSource.connect(loopbackAnalyser)
+  } catch (err) {
+    // Si el usuario o el sistema niegan la captura, queda en null y el
+    // visualizador volvera a su modo sintetico para esa pista.
+    loopbackRequested = false
+  }
 }
 
 // ---------------------------------------------------------------------
@@ -107,6 +274,11 @@ async function playItem(item, context) {
   if (item.source === 'local') await loadLocal(item)
   else if (item.source === 'youtube') loadYouTube(item)
   else if (item.source === 'spotify') loadSpotify(item)
+
+  // Para fuentes externas, intenta activar la captura del audio del sistema
+  // para que el visualizador reaccione a la musica real. Solo se solicita una
+  // vez por sesion; despues se reutiliza la misma corriente.
+  if (item.source !== 'local') ensureLoopbackAnalyser()
 
   updateNowPlaying(item)
   ctx.emit('track-changed', item)
@@ -273,10 +445,13 @@ function randomIndexExcept(len, except) {
 // ---------------------------------------------------------------------
 function setPlaying(playing) {
   ctx.state.isPlaying = playing
-  ctx.els.iconPlay.hidden = playing
-  ctx.els.iconPause.hidden = !playing
+  // El swap visual se hace por CSS via la clase .playing del boton.
+  // Tambien limpiamos cualquier hidden inline que pudiera haber quedado.
+  if (ctx.els.iconPlay) ctx.els.iconPlay.removeAttribute('hidden')
+  if (ctx.els.iconPause) ctx.els.iconPause.removeAttribute('hidden')
   ctx.els.btnPlay.classList.toggle('playing', playing)
   ctx.els.btnPlay.title = playing ? 'Pausar' : 'Reproducir'
+  ctx.els.btnPlay.setAttribute('aria-label', playing ? 'Pausar' : 'Reproducir')
   ctx.emit('play-state', playing)
 
   if (playing) startProgressLoop()
@@ -474,13 +649,7 @@ function wireAudioEvents() {
   audio.addEventListener('ended', () => next(true))
   audio.addEventListener('loadedmetadata', updateProgressUI)
   audio.addEventListener('pause', () => {
-    if (getCurrent()?.source === 'local') {
-      ctx.state.isPlaying = false
-      ctx.els.iconPlay.hidden = false
-      ctx.els.iconPause.hidden = true
-      ctx.els.btnPlay.classList.remove('playing')
-      ctx.emit('play-state', false)
-    }
+    if (getCurrent()?.source === 'local') setPlaying(false)
   })
   audio.addEventListener('play', () => {
     if (getCurrent()?.source === 'local') setPlaying(true)

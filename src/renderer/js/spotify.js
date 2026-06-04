@@ -45,12 +45,77 @@ async function restoreSessionIfAny() {
       const token = await ctx.aero.spotifyGetToken()
       if (token) {
         accessToken = token
-        initWebPlaybackSdk()
+        // Solo pre-carga el script del SDK. El Player se construira en el
+        // primer play(), que llega como gesto del usuario; esto evita que
+        // Chromium bloquee el AudioContext del SDK por autoplay-policy y se
+        // quede colgado sin emitir 'ready'.
+        preloadSdkScript()
       }
     }
   } catch {
     /* sin sesion previa */
   }
+}
+
+// Verifica si Widevine esta realmente disponible en este renderer. Pregunta
+// primero al proceso principal (status del componente) y, como confirmacion,
+// hace una llamada a requestMediaKeySystemAccess. Cachea el resultado.
+let widevineCheck = null
+async function widevineAvailable() {
+  if (widevineCheck !== null) return widevineCheck
+  try {
+    if (ctx.aero.getWidevineStatus) {
+      const s = await ctx.aero.getWidevineStatus()
+      if (s && s.error && !s.ready) {
+        console.warn('[widevine] main reporta:', s.error)
+      }
+    }
+    await navigator.requestMediaKeySystemAccess('com.widevine.alpha', [
+      {
+        initDataTypes: ['cenc'],
+        audioCapabilities: [{ contentType: 'audio/mp4;codecs="mp4a.40.2"' }],
+      },
+    ])
+    widevineCheck = true
+  } catch (err) {
+    console.warn('[widevine] requestMediaKeySystemAccess fallo:', err)
+    widevineCheck = false
+  }
+  return widevineCheck
+}
+
+// Espera a que el SDK registre un device_id. Si ya esta listo retorna true
+// al instante. Si no hay inicializacion en curso, la dispara y espera.
+async function waitForDevice(timeoutMs) {
+  if (deviceId) return true
+  if (!sdkPlayer && !readyPromise) initWebPlaybackSdk()
+  const result = await Promise.race([
+    readyPromise || Promise.resolve(false),
+    new Promise((r) => setTimeout(() => r(false), timeoutMs || 12000)),
+  ])
+  return !!(result && deviceId)
+}
+
+// Resetea por completo el SDK: desconecta el player, limpia las referencias
+// y prepara una nueva inicializacion en limpio. Util cuando la primera
+// inicializacion fallo (por autoplay-policy o por la falta de un gesto).
+async function hardResetSdk() {
+  if (sdkPlayer) {
+    try { sdkPlayer.disconnect() } catch {}
+  }
+  sdkPlayer = null
+  deviceId = null
+  readyPromise = null
+  readyResolver = null
+}
+
+function preloadSdkScript() {
+  if (window.Spotify && window.Spotify.Player) return
+  if (document.getElementById('spotify-sdk-script')) return
+  const tag = document.createElement('script')
+  tag.id = 'spotify-sdk-script'
+  tag.src = 'https://sdk.scdn.co/spotify-player.js'
+  document.head.appendChild(tag)
 }
 
 // ---------------------------------------------------------------------
@@ -91,8 +156,9 @@ async function logout() {
 // Web Playback SDK
 // ---------------------------------------------------------------------
 function initWebPlaybackSdk() {
-  if (sdkPlayer) return
-  // Promesa que play() puede await-ear hasta tener deviceId.
+  // Si ya se construyo el Player o ya hay una inicializacion en curso, no
+  // reseteamos la promesa (antes la sobreescribiamos y se perdia la espera).
+  if (sdkPlayer || readyPromise) return
   readyPromise = new Promise((resolve) => {
     readyResolver = resolve
   })
@@ -103,32 +169,35 @@ function initWebPlaybackSdk() {
     return
   }
   window.onSpotifyWebPlaybackSDKReady = boot
-  if (!document.getElementById('spotify-sdk-script')) {
-    const tag = document.createElement('script')
-    tag.id = 'spotify-sdk-script'
-    tag.src = 'https://sdk.scdn.co/spotify-player.js'
-    document.head.appendChild(tag)
-  }
+  preloadSdkScript()
 }
 
-function createSdkPlayer() {
-  sdkPlayer = new window.Spotify.Player({
-    name: 'Aero Player',
-    // Pide siempre un token vigente al proceso principal (se refresca solo).
-    getOAuthToken: (cb) => {
-      ctx.aero.spotifyGetToken().then((t) => cb(t || accessToken)).catch(() => cb(accessToken))
-    },
-    volume: ctx.state.volume || 0.8,
-  })
+async function createSdkPlayer() {
+  try {
+    sdkPlayer = new window.Spotify.Player({
+      name: 'Aero Player',
+      // Pide siempre un token vigente al proceso principal (se refresca solo).
+      getOAuthToken: (cb) => {
+        ctx.aero.spotifyGetToken().then((t) => cb(t || accessToken)).catch(() => cb(accessToken))
+      },
+      volume: ctx.state.volume || 0.8,
+    })
+  } catch (err) {
+    console.warn('[spotify] no se pudo construir el Player SDK:', err)
+    if (readyResolver) { readyResolver(false); readyResolver = null }
+    return
+  }
 
   sdkPlayer.addListener('ready', ({ device_id }) => {
     deviceId = device_id
+    console.log('[spotify] device listo:', device_id)
     if (readyResolver) {
       readyResolver(true)
       readyResolver = null
     }
   })
-  sdkPlayer.addListener('not_ready', () => {
+  sdkPlayer.addListener('not_ready', ({ device_id }) => {
+    console.log('[spotify] device offline:', device_id)
     deviceId = null
   })
   sdkPlayer.addListener('player_state_changed', (s) => {
@@ -140,59 +209,122 @@ function createSdkPlayer() {
       ts: Date.now(),
     }
     ctx.emit('external-play-state', !s.paused)
-    // Fin de pista: posicion 0 y pausado tras haber sonado.
     if (s.paused && s.position === 0 && s.track_window?.previous_tracks?.length) {
       ctx.emit('external-ended')
     }
   })
   sdkPlayer.addListener('initialization_error', ({ message }) => {
+    console.warn('[spotify] initialization_error:', message)
     ctx.toast('Spotify: ' + message, { platform: 'spotify' })
     if (readyResolver) { readyResolver(false); readyResolver = null }
   })
-  sdkPlayer.addListener('authentication_error', () => {
-    ctx.toast('Spotify: error de autenticacion. Vuelve a conectar.', { platform: 'spotify' })
+  sdkPlayer.addListener('authentication_error', ({ message }) => {
+    console.warn('[spotify] authentication_error:', message)
+    ctx.toast('Spotify: la sesion expiro o el token no es valido. Vuelve a conectar.', { platform: 'spotify' })
     if (readyResolver) { readyResolver(false); readyResolver = null }
   })
-  sdkPlayer.addListener('account_error', () => {
+  sdkPlayer.addListener('account_error', ({ message }) => {
+    console.warn('[spotify] account_error:', message)
     isPremium = false
     ctx.toast('Spotify: la reproduccion requiere una cuenta Premium.', { platform: 'spotify' })
     if (readyResolver) { readyResolver(false); readyResolver = null }
   })
-  sdkPlayer.connect()
+  sdkPlayer.addListener('playback_error', ({ message }) => {
+    console.warn('[spotify] playback_error:', message)
+    ctx.toast('Spotify: no se pudo reproducir esta pista (' + (message || 'desconocido') + ').', { platform: 'spotify' })
+  })
+
+  try {
+    const success = await sdkPlayer.connect()
+    if (!success) {
+      console.warn('[spotify] connect() devolvio false')
+      if (readyResolver) { readyResolver(false); readyResolver = null }
+    }
+  } catch (err) {
+    console.warn('[spotify] connect() exception:', err)
+    if (readyResolver) { readyResolver(false); readyResolver = null }
+  }
 }
 
 // ---------------------------------------------------------------------
 // Control de reproduccion (via Web API sobre el dispositivo del SDK)
 // ---------------------------------------------------------------------
 async function play(uri) {
-  // Si no hay sesion, no podemos hacer nada.
   if (!ctx.state.auth.spotify.connected) {
     ctx.toast('Conecta tu cuenta de Spotify para reproducir.', { platform: 'spotify' })
     return
   }
-  // Si la cuenta ya respondio que no es Premium, no insistas.
   if (!isPremium) {
     ctx.toast('La reproduccion de Spotify requiere cuenta Premium.', { platform: 'spotify' })
     return
   }
-  // Si el SDK aun no esta inicializado (puede pasar al primer arranque),
-  // dispara la inicializacion ahora mismo.
-  if (!sdkPlayer) {
-    accessToken = (await ctx.aero.spotifyGetToken()) || accessToken
-    if (accessToken) initWebPlaybackSdk()
+
+  // Pre-check: Spotify Web Playback exige Widevine (EME). Si no esta cargado
+  // el SDK arrojara EMEEError "No supported keysystem was found". Lo detectamos
+  // antes para mostrar un mensaje util en vez del timeout generico.
+  if (!(await widevineAvailable())) {
+    ctx.toast(
+      'Widevine no esta disponible. Reinicia la app una vez (la primera ejecucion descarga el CDM) o revisa que tu antivirus/firewall no bloquee dl.google.com.',
+      { platform: 'spotify', duration: 8000 }
+    )
+    return
   }
-  // Espera hasta 10 segundos a que el SDK registre su deviceId.
+
+  // Asegura un token vigente antes de tocar el SDK.
+  accessToken = (await ctx.aero.spotifyGetToken()) || accessToken
+  if (!accessToken) {
+    ctx.toast('Spotify: la sesion expiro. Vuelve a conectar.', { platform: 'spotify' })
+    return
+  }
+
+  // Espera al device_id, reintentando si el primer connect() fallo. El
+  // reintento se hace dentro del manejador del clic del usuario, asi
+  // Chromium permite que el SDK arranque su AudioContext interno.
   if (!deviceId) {
-    const ready = await Promise.race([
-      readyPromise || Promise.resolve(false),
-      new Promise((r) => setTimeout(() => r(false), 10000)),
-    ])
-    if (!ready || !deviceId) {
-      ctx.toast('El reproductor de Spotify no respondio. Intenta de nuevo en unos segundos.', { platform: 'spotify' })
-      return
+    const ok = await waitForDevice(15000)
+    if (!ok) {
+      // Reset duro y reintento final.
+      await hardResetSdk()
+      initWebPlaybackSdk()
+      const ok2 = await waitForDevice(15000)
+      if (!ok2) {
+        ctx.toast(
+          'El reproductor de Spotify no respondio. Verifica conexion, que la cuenta sea Premium y reinicia la app.',
+          { platform: 'spotify' }
+        )
+        return
+      }
     }
   }
-  await apiPut(`/me/player/play?device_id=${deviceId}`, { uris: [uri] })
+
+  // Primer intento de reproducir.
+  let r = await apiPut(`/me/player/play?device_id=${deviceId}`, { uris: [uri] })
+  if (r.ok) return
+
+  // 404: el device aun no esta activo en la cuenta. Lo transferimos y volvemos
+  // a intentar. (Pasa siempre la primera vez que abres la app.)
+  if (r.status === 404) {
+    await apiPut('/me/player', { device_ids: [deviceId], play: false })
+    await new Promise((res) => setTimeout(res, 350))
+    r = await apiPut(`/me/player/play?device_id=${deviceId}`, { uris: [uri] })
+    if (r.ok) return
+  }
+
+  if (r.status === 403) {
+    // 403 en /me/player/play casi siempre significa "cuenta no Premium" o
+    // restricciones del modo desarrollo de la API de Spotify.
+    isPremium = false
+    ctx.toast(
+      'Spotify rechazo la reproduccion. Verifica que tu cuenta sea Premium.',
+      { platform: 'spotify' }
+    )
+    return
+  }
+  if (r.status === 401) {
+    ctx.toast('Spotify: la sesion expiro. Vuelve a conectar.', { platform: 'spotify' })
+    return
+  }
+  ctx.toast(`Spotify: error ${r.status || ''} al reproducir.`, { platform: 'spotify' })
 }
 function pause() {
   if (sdkPlayer) sdkPlayer.pause()
@@ -218,13 +350,15 @@ function setMuted(m) {
 async function apiPut(path, body) {
   try {
     const token = (await ctx.aero.spotifyGetToken()) || accessToken
-    await fetch('https://api.spotify.com/v1' + path, {
+    const res = await fetch('https://api.spotify.com/v1' + path, {
       method: 'PUT',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
+    if (res.ok || res.status === 204) return { ok: true, status: res.status }
+    return { ok: false, status: res.status }
   } catch (err) {
-    ctx.toast('No se pudo controlar la reproduccion de Spotify.', { platform: 'spotify' })
+    return { ok: false, status: 0, error: String(err && err.message) }
   }
 }
 
@@ -285,9 +419,15 @@ function showLoading(title) {
 }
 
 function showError(msg) {
-  ctx.els.listViewBody.innerHTML = `<div class="list-empty">No se pudo cargar el contenido de Spotify.<br><small style="opacity:.6">${escapeHtml(
-    msg || ''
-  )}</small></div>`
+  const raw = String(msg || '')
+  let friendly = 'No se pudo cargar el contenido de Spotify.'
+  if (raw.includes('403')) {
+    friendly =
+      'Spotify rechazo la solicitud (403). Las playlists creadas por Spotify (Discover Weekly, Daily Mixes, etc.) ya no son accesibles desde aplicaciones en modo desarrollo. Las tuyas propias deberian funcionar.'
+  } else if (raw.includes('401')) {
+    friendly = 'La sesion de Spotify expiro. Cierra sesion desde Ajustes y vuelve a conectar.'
+  }
+  ctx.els.listViewBody.innerHTML = `<div class="list-empty">${escapeHtml(friendly)}<br><small style="opacity:.45">${escapeHtml(raw)}</small></div>`
 }
 
 function renderTrackList(items, title) {

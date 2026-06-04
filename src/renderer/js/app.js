@@ -13,6 +13,8 @@ import { initYouTube, searchYouTube } from './youtube.js'
 import { initSpotify, searchSpotify } from './spotify.js'
 import { initDragDrop } from './drag-drop.js'
 import { initPlaylists } from './playlists.js'
+import { initSettings } from './settings.js'
+import { initProfile } from './profile.js'
 
 // El puente seguro expuesto desde preload.js. Si no existe (por ejemplo al
 // abrir el HTML fuera de Electron) se usa un stub para no romper la UI.
@@ -350,6 +352,8 @@ async function boot() {
   initSidebar(ctx)
   initDragDrop(ctx)
   initPlaylists(ctx)
+  initSettings(ctx)
+  await initProfile(ctx)
 
   updateStatusBar()
   ctx.emit('queue-changed')

@@ -36,8 +36,10 @@ Para generar el instalador de Windows (MediaPlayer.exe):
 npm run dist:win
 ```
 
-El instalador queda en la carpeta `release/`. Eso es todo: la reproduccion de
-musica local funciona sin configurar ninguna clave.
+El instalador queda en la carpeta `release/` (nombre: `MediaPlayer-Setup-<version>.exe`).
+Eso es todo: la reproduccion de musica local funciona sin configurar ninguna
+clave. Para iniciar sesion en YouTube o Spotify necesitas tus propias
+credenciales (ver mas abajo).
 
 ---
 
@@ -92,7 +94,9 @@ credenciales si quieres iniciar sesion y acceder a tus playlists personales.
    - Copia el *Client ID* y el *Client Secret* dentro de tu `.env`.
 
 El archivo `.env` nunca se sube al repositorio (ya esta excluido en
-`.gitignore`). El archivo `.env.example` solo contiene marcadores de ejemplo.
+`.gitignore`) **ni se incluye dentro del instalador**, por lo que cada usuario
+tiene que poner sus propias credenciales antes de compilar. El archivo
+`.env.example` solo contiene marcadores de ejemplo.
 
 ---
 
@@ -102,8 +106,9 @@ El archivo `.env` nunca se sube al repositorio (ya esta excluido en
 |---|---|
 | `npm run dev` | Inicia Vite y Electron con recarga en caliente. |
 | `npm run build` | Genera el bundle estatico del renderer en `dist/`. |
-| `npm run icon` | Regenera el icono `build/icon.ico` con estetica Aero. |
-| `npm run dist:win` | Construye el instalador de Windows (MediaPlayer.exe). |
+| `npm run icon` | Regenera el icono `build/icon.ico` (multi-resolucion) y `build/icon.png`. |
+| `npm run clean` | Borra `dist/` y `release/` para dejar el proyecto limpio. |
+| `npm run dist:win` | Regenera icono, compila y construye el instalador de Windows. |
 
 ---
 

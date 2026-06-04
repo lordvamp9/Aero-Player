@@ -55,6 +55,9 @@ contextBridge.exposeInMainWorld('aero', {
   storeGet: (key) => ipcRenderer.invoke('store-get', key),
   storeSet: (key, value) => ipcRenderer.invoke('store-set', key, value),
 
+  // Estado de Widevine (DRM)
+  getWidevineStatus: () => ipcRenderer.invoke('get-widevine-status'),
+
   // Controles de ventana
   windowMinimize: () => ipcRenderer.send('window-minimize'),
   windowMaximize: () => ipcRenderer.send('window-maximize'),
