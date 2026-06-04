@@ -20,6 +20,12 @@ contextBridge.exposeInMainWorld('aero', {
   spotifyAuthLogout: () => ipcRenderer.invoke('spotify-auth-logout'),
   getAuthStatus: () => ipcRenderer.invoke('get-auth-status'),
 
+  // YouTube Data API
+  youtubeGetLiked: () => ipcRenderer.invoke('youtube-get-liked'),
+  youtubeGetPlaylists: () => ipcRenderer.invoke('youtube-get-playlists'),
+  youtubeGetPlaylistItems: (id) => ipcRenderer.invoke('youtube-get-playlist-items', id),
+  youtubeSearchMusic: (q) => ipcRenderer.invoke('youtube-search-music', q),
+
   // Persistencia (electron-store)
   storeGet: (key) => ipcRenderer.invoke('store-get', key),
   storeSet: (key, value) => ipcRenderer.invoke('store-set', key, value),

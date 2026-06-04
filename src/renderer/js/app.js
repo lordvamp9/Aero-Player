@@ -9,7 +9,7 @@ import { initVisualizer } from './visualizer.js'
 import { initQueue } from './queue.js'
 import { initLibrary } from './library.js'
 import { initSidebar } from './sidebar.js'
-import { initYouTube } from './youtube.js'
+import { initYouTube, searchYouTube } from './youtube.js'
 import { initSpotify } from './spotify.js'
 import { initDragDrop } from './drag-drop.js'
 
@@ -136,7 +136,13 @@ function wireSearch() {
   ctx.els.search.addEventListener('input', (e) => {
     clearTimeout(t)
     const term = e.target.value.trim()
-    t = setTimeout(() => ctx.emit('search', term), 180)
+    t = setTimeout(() => {
+      ctx.emit('search', term)
+      // Busqueda en YouTube si hay sesion activa.
+      if (term.length >= 3 && ctx.state.auth.google.connected) {
+        searchYouTube(term)
+      }
+    }, 350)
   })
 }
 

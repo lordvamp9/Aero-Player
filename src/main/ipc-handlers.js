@@ -8,6 +8,7 @@ const { readMetadata } = require('./metadata-reader')
 const { store } = require('./store')
 const { startGoogleAuth, logoutGoogle, getGoogleStatus } = require('./auth/google-auth')
 const { startSpotifyAuth, logoutSpotify, getSpotifyStatus } = require('./auth/spotify-auth')
+const { getLikedVideos, getMyPlaylists, getPlaylistItems, searchMusic } = require('./youtube-api')
 
 let registered = false
 
@@ -63,6 +64,12 @@ function registerIpcHandlers(mainWindow) {
     google: getGoogleStatus(),
     spotify: getSpotifyStatus(),
   }))
+
+  // ---- YouTube Data API ----
+  ipcMain.handle('youtube-get-liked', async () => getLikedVideos())
+  ipcMain.handle('youtube-get-playlists', async () => getMyPlaylists())
+  ipcMain.handle('youtube-get-playlist-items', async (_e, playlistId) => getPlaylistItems(playlistId))
+  ipcMain.handle('youtube-search-music', async (_e, query) => searchMusic(query))
 
   // ---- Persistencia ----
   ipcMain.handle('store-get', async (_e, key) => store.get(key))

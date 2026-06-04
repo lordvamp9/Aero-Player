@@ -1,15 +1,16 @@
 /* =====================================================================
    AERO PLAYER  ·  youtube.js
-   Reproduccion mediante la YouTube IFrame Player API (oficial y gratuita)
-   y conexion de la cuenta de Google para acceder a las playlists.
-   La reproduccion por videoId funciona sin claves; el acceso a playlists
-   personales requiere completar las credenciales en el archivo .env.
+   Reproduccion con YouTube IFrame API y carga real de contenido via
+   YouTube Data API v3 (liked videos, playlists, busqueda musical).
    ===================================================================== */
+
+import { escapeHtml, ytIcon } from './app.js'
 
 let ctx
 let player = null
 let ready = false
 let pendingVideoId = null
+let playlistCache = null // cache de playlists del usuario
 
 export function initYouTube(context) {
   ctx = context
@@ -32,13 +33,10 @@ export function initYouTube(context) {
 }
 
 // ---------------------------------------------------------------------
-// Carga de la API y creacion del reproductor oculto
+// IFrame API
 // ---------------------------------------------------------------------
 function loadIframeApi() {
-  if (window.YT && window.YT.Player) {
-    createPlayer()
-    return
-  }
+  if (window.YT && window.YT.Player) { createPlayer(); return }
   const tag = document.createElement('script')
   tag.src = 'https://www.youtube.com/iframe_api'
   document.head.appendChild(tag)
@@ -47,19 +45,15 @@ function loadIframeApi() {
 
 function createPlayer() {
   player = new window.YT.Player('yt-player-host', {
-    height: '1',
-    width: '1',
+    height: '1', width: '1',
     playerVars: { autoplay: 0, controls: 0, disablekb: 1, modestbranding: 1, rel: 0 },
     events: {
       onReady: () => {
         ready = true
         player.setVolume(Math.round((ctx.state.volume || 0.8) * 100))
-        if (pendingVideoId) {
-          play(pendingVideoId)
-          pendingVideoId = null
-        }
+        if (pendingVideoId) { play(pendingVideoId); pendingVideoId = null }
       },
-      onStateChange: onStateChange,
+      onStateChange,
     },
   })
 }
@@ -67,50 +61,30 @@ function createPlayer() {
 function onStateChange(e) {
   const YT = window.YT
   if (!YT) return
-  if (e.data === YT.PlayerState.ENDED) {
-    ctx.emit('external-ended')
-  } else if (e.data === YT.PlayerState.PLAYING) {
-    ctx.emit('external-play-state', true)
-  } else if (e.data === YT.PlayerState.PAUSED) {
-    ctx.emit('external-play-state', false)
-  }
+  if (e.data === YT.PlayerState.ENDED) ctx.emit('external-ended')
+  else if (e.data === YT.PlayerState.PLAYING) ctx.emit('external-play-state', true)
+  else if (e.data === YT.PlayerState.PAUSED) ctx.emit('external-play-state', false)
 }
 
 // ---------------------------------------------------------------------
 // Control de reproduccion
 // ---------------------------------------------------------------------
 function play(videoId) {
-  if (!ready || !player) {
-    pendingVideoId = videoId
-    return
-  }
+  if (!ready || !player) { pendingVideoId = videoId; return }
   player.loadVideoById(videoId)
   player.playVideo()
 }
-function pause() {
-  if (ready && player) player.pauseVideo()
-}
-function resume() {
-  if (ready && player) player.playVideo()
-}
-function stop() {
-  if (ready && player) player.stopVideo()
-}
-function seek(seconds) {
-  if (ready && player) player.seekTo(seconds, true)
-}
+function pause()  { if (ready && player) player.pauseVideo() }
+function resume() { if (ready && player) player.playVideo() }
+function stop()   { if (ready && player) player.stopVideo() }
+function seek(s)  { if (ready && player) player.seekTo(s, true) }
 function getTimes() {
-  if (ready && player && player.getDuration) {
+  if (ready && player && player.getDuration)
     return { time: player.getCurrentTime() || 0, duration: player.getDuration() || 0 }
-  }
   return { time: 0, duration: 0 }
 }
-function setVolume(v) {
-  if (ready && player) player.setVolume(Math.round(v * 100))
-}
-function setMuted(m) {
-  if (ready && player) (m ? player.mute() : player.unMute())
-}
+function setVolume(v) { if (ready && player) player.setVolume(Math.round(v * 100)) }
+function setMuted(m)  { if (ready && player) (m ? player.mute() : player.unMute()) }
 
 // ---------------------------------------------------------------------
 // Autenticacion
@@ -120,6 +94,7 @@ async function connect() {
   const res = await ctx.aero.googleAuthStart()
   if (res.connected) {
     ctx.state.auth.google = { connected: true, userName: res.userName }
+    playlistCache = null
     ctx.emit('youtube-auth', ctx.state.auth.google)
     ctx.toast(`Conectado a YouTube como ${res.userName}`, { platform: 'youtube' })
   } else {
@@ -130,21 +105,155 @@ async function connect() {
 async function logout() {
   await ctx.aero.googleAuthLogout()
   ctx.state.auth.google = { connected: false }
+  playlistCache = null
   ctx.emit('youtube-auth', ctx.state.auth.google)
   ctx.toast('Sesion de YouTube cerrada', { platform: 'youtube' })
 }
 
-function loadSection(which) {
+// ---------------------------------------------------------------------
+// Carga de contenido real via YouTube Data API v3
+// ---------------------------------------------------------------------
+async function loadSection(which) {
   if (!ctx.state.auth.google.connected) {
-    ctx.toast('Conecta tu cuenta de YouTube para ver tus playlists.', { platform: 'youtube' })
+    ctx.toast('Conecta tu cuenta de YouTube para ver tu biblioteca.', { platform: 'youtube' })
     return
   }
-  // Con las credenciales configuradas en .env, aqui se consultaria la
-  // YouTube Data API para listar el contenido de cada seccion.
-  const labels = {
-    liked: 'Me gusta',
-    watchlater: 'Ver mas tarde',
-    playlists: 'Mis playlists',
+
+  showLoading(sectionLabel(which))
+
+  if (which === 'liked') {
+    const res = await ctx.aero.youtubeGetLiked()
+    if (!res.ok) { showError(res.error); return }
+    renderVideoList(res.items, 'Me gusta')
+
+  } else if (which === 'playlists') {
+    const res = await ctx.aero.youtubeGetPlaylists()
+    if (!res.ok) { showError(res.error); return }
+    playlistCache = res.items
+    renderPlaylistList(res.items)
+
+  } else if (which === 'watchlater') {
+    // "Ver mas tarde" no es accesible por la API publica de YouTube.
+    // Mostramos una busqueda de musica reciente como alternativa.
+    const res = await ctx.aero.youtubeSearchMusic('musica 2024 2025')
+    if (!res.ok) { showError(res.error); return }
+    renderVideoList(res.items, 'Descubrimiento musical')
   }
-  ctx.toast(`YouTube · ${labels[which] || which}`, { platform: 'youtube' })
+}
+
+function sectionLabel(w) {
+  return w === 'liked' ? 'Me gusta' : w === 'playlists' ? 'Mis playlists' : 'Descubrimiento musical'
+}
+
+// ---------------------------------------------------------------------
+// Busqueda desde la barra global (llamada desde app.js via evento)
+// ---------------------------------------------------------------------
+export async function searchYouTube(query) {
+  if (!ctx.state.auth.google.connected) return
+  showLoading(`Resultados de YouTube: "${query}"`)
+  const res = await ctx.aero.youtubeSearchMusic(query)
+  if (!res.ok) { showError(res.error); return }
+  renderVideoList(res.items, `YouTube: "${query}"`)
+}
+
+// ---------------------------------------------------------------------
+// Renderizado
+// ---------------------------------------------------------------------
+function showLoading(title) {
+  ctx.els.listViewTitle.textContent = title
+  ctx.els.listViewCount.textContent = ''
+  ctx.els.listViewBody.innerHTML = '<div class="list-empty">Cargando...</div>'
+  ctx.els.listView.hidden = false
+  ctx.els.nowPlaying.style.opacity = '0.15'
+}
+
+function showError(msg) {
+  ctx.els.listViewBody.innerHTML = `<div class="list-empty">Error al cargar el contenido.<br><small style="opacity:.6">${escapeHtml(msg || '')}</small></div>`
+}
+
+function renderVideoList(items, title) {
+  ctx.els.listViewTitle.textContent = title
+  ctx.els.listViewCount.textContent = items.length ? `${items.length} ${items.length === 1 ? 'video' : 'videos'}` : ''
+
+  if (!items.length) {
+    ctx.els.listViewBody.innerHTML = '<div class="list-empty">No se encontraron videos.</div>'
+    return
+  }
+
+  const frag = document.createDocumentFragment()
+  items.forEach((item, i) => {
+    const row = document.createElement('div')
+    row.className = 'track-row'
+    const thumb = item.coverUrl ? `background-image:url("${item.coverUrl}")` : ''
+    row.innerHTML = `
+      <span class="tr-index">${i + 1}</span>
+      <span class="tr-cover yt-thumb" style="${thumb}">
+        ${!item.coverUrl ? ytIcon(16) : ''}
+        <span class="yt-play-overlay">&#9654;</span>
+      </span>
+      <span class="tr-main">
+        <span class="tr-title">${escapeHtml(item.title)}</span>
+        <span class="tr-sub">${escapeHtml(item.artist)}</span>
+      </span>
+      <span class="tr-platform">${ytIcon(14)}</span>
+      <span class="tr-dur">${item.durationFormatted || ''}</span>
+    `
+    row.addEventListener('click', () => playVideo(item))
+    row.addEventListener('contextmenu', e => {
+      e.preventDefault()
+      ctx.contextMenu.show(e.clientX, e.clientY, [
+        { label: 'Reproducir ahora', action: () => playVideo(item) },
+        { label: 'Agregar a la cola', action: () => ctx.queue.add({ ...item }) },
+      ])
+    })
+    frag.appendChild(row)
+  })
+  ctx.els.listViewBody.innerHTML = ''
+  ctx.els.listViewBody.appendChild(frag)
+}
+
+function renderPlaylistList(playlists) {
+  ctx.els.listViewTitle.textContent = 'Mis playlists'
+  ctx.els.listViewCount.textContent = playlists.length ? `${playlists.length} playlists` : ''
+
+  if (!playlists.length) {
+    ctx.els.listViewBody.innerHTML = '<div class="list-empty">No tienes playlists en YouTube.</div>'
+    return
+  }
+
+  const frag = document.createDocumentFragment()
+  playlists.forEach(pl => {
+    const row = document.createElement('div')
+    row.className = 'track-row'
+    const thumb = pl.coverUrl ? `background-image:url("${pl.coverUrl}")` : ''
+    row.innerHTML = `
+      <span class="tr-cover yt-thumb" style="${thumb}">${!pl.coverUrl ? ytIcon(16) : ''}</span>
+      <span class="tr-main">
+        <span class="tr-title">${escapeHtml(pl.title)}</span>
+        <span class="tr-sub">${pl.count} ${pl.count === 1 ? 'video' : 'videos'}</span>
+      </span>
+      <span class="tr-platform">${ytIcon(14)}</span>
+    `
+    row.addEventListener('click', () => openPlaylist(pl))
+    frag.appendChild(row)
+  })
+  ctx.els.listViewBody.innerHTML = ''
+  ctx.els.listViewBody.appendChild(frag)
+}
+
+async function openPlaylist(pl) {
+  showLoading(pl.title)
+  const res = await ctx.aero.youtubeGetPlaylistItems(pl.playlistId)
+  if (!res.ok) { showError(res.error); return }
+  renderVideoList(res.items, pl.title)
+}
+
+function playVideo(item) {
+  // Agrega a la cola si no esta ya, luego reproduce.
+  let qi = ctx.state.queue.find(i => i.videoId === item.videoId)
+  if (!qi) {
+    const id = ctx.queue.add({ ...item }, { silent: true })
+    qi = ctx.state.queue.find(i => i.id === id)
+  }
+  ctx.player.playItem(qi)
 }

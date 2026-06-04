@@ -176,6 +176,26 @@
   color: var(--text-dim);
 }
 
+/* Thumbnail de YouTube con overlay de play al hacer hover */
+.yt-thumb {
+  position: relative;
+  overflow: hidden;
+}
+.yt-play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(0, 0, 0, 0);
+  transition: background 0.15s ease;
+}
+.track-row:hover .yt-play-overlay {
+  background: rgba(0, 0, 0, 0.45);
+}
+
 /* Cabecera de grupo (vistas por album / artista / genero) */
 .group-header {
   position: sticky;
