@@ -27,9 +27,17 @@ export function initYouTube(context) {
     getTimes,
     setVolume,
     setMuted,
+    isPlaying,
   }
 
   loadIframeApi()
+}
+
+// 1 = PLAYING, 3 = BUFFERING (lo tratamos como "sonando").
+function isPlaying() {
+  if (!ready || !player || !player.getPlayerState) return null
+  const s = player.getPlayerState()
+  return s === 1 || s === 3
 }
 
 // ---------------------------------------------------------------------
@@ -184,7 +192,7 @@ function renderVideoList(items, title) {
   items.forEach((item, i) => {
     const row = document.createElement('div')
     row.className = 'track-row'
-    const thumb = item.coverUrl ? `background-image:url("${item.coverUrl}")` : ''
+    const thumb = item.coverUrl ? `background-image:url('${item.coverUrl}')` : ''
     row.innerHTML = `
       <span class="tr-index">${i + 1}</span>
       <span class="tr-cover yt-thumb" style="${thumb}">
@@ -198,11 +206,12 @@ function renderVideoList(items, title) {
       <span class="tr-platform">${ytIcon(14)}</span>
       <span class="tr-dur">${item.durationFormatted || ''}</span>
     `
-    row.addEventListener('click', () => playVideo(item))
+    const idx = i
+    row.addEventListener('click', () => playYt(item, items, idx))
     row.addEventListener('contextmenu', e => {
       e.preventDefault()
       ctx.contextMenu.show(e.clientX, e.clientY, [
-        { label: 'Reproducir ahora', action: () => playVideo(item) },
+        { label: 'Reproducir ahora', action: () => playYt(item, items, idx) },
         { label: 'Agregar a la cola', action: () => ctx.queue.add({ ...item }) },
       ])
     })
@@ -225,7 +234,7 @@ function renderPlaylistList(playlists) {
   playlists.forEach(pl => {
     const row = document.createElement('div')
     row.className = 'track-row'
-    const thumb = pl.coverUrl ? `background-image:url("${pl.coverUrl}")` : ''
+    const thumb = pl.coverUrl ? `background-image:url('${pl.coverUrl}')` : ''
     row.innerHTML = `
       <span class="tr-cover yt-thumb" style="${thumb}">${!pl.coverUrl ? ytIcon(16) : ''}</span>
       <span class="tr-main">
@@ -248,12 +257,7 @@ async function openPlaylist(pl) {
   renderVideoList(res.items, pl.title)
 }
 
-function playVideo(item) {
-  // Agrega a la cola si no esta ya, luego reproduce.
-  let qi = ctx.state.queue.find(i => i.videoId === item.videoId)
-  if (!qi) {
-    const id = ctx.queue.add({ ...item }, { silent: true })
-    qi = ctx.state.queue.find(i => i.id === id)
-  }
-  ctx.player.playItem(qi)
+// Reproduce sin tocar la cola; la lista visible queda como contexto.
+function playYt(item, list, index) {
+  ctx.player.playItem(item, { list: list || [item], index: index || 0 })
 }

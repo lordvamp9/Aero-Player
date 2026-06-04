@@ -35,6 +35,7 @@ export function initPlayer(context) {
   ctx.player = {
     playItem,
     playId,
+    playFromQueue,
     togglePlay,
     pause,
     next,
@@ -46,6 +47,10 @@ export function initPlayer(context) {
     getCurrent,
     isLocalActive: () => getCurrent()?.source === 'local' && ctx.state.isPlaying,
   }
+
+  // Sincroniza el icono play/pausa con el estado real de los motores externos
+  // (YouTube/Spotify) por si algun evento no llega a tiempo.
+  startExternalSync()
 }
 
 // ---------------------------------------------------------------------
@@ -80,19 +85,24 @@ function getTimeDomainData() {
 
 // ---------------------------------------------------------------------
 // Reproduccion
+//
+// Modelo tipo Spotify: reproducir una pista NO la mete en la cola. La cola
+// (ctx.state.queue) es una lista manual que el usuario arma a mano y que tiene
+// prioridad en "siguiente". La navegacion normal usa la lista de contexto
+// (ctx.state.context) que es la vista desde la que se empezo a reproducir.
 // ---------------------------------------------------------------------
 function getCurrent() {
-  return ctx.state.queue.find((i) => i.id === ctx.state.currentId) || null
+  return ctx.state.currentTrack || null
 }
 
-function playId(id) {
-  const item = ctx.state.queue.find((i) => i.id === id)
-  if (item) playItem(item)
-}
-
-async function playItem(item) {
+// Reproduce una pista. context = { list, index } fija la lista de navegacion.
+async function playItem(item, context) {
   if (!item) return
+  ctx.state.currentTrack = item
   ctx.state.currentId = item.id
+  if (context && Array.isArray(context.list)) {
+    ctx.state.context = { list: context.list, index: context.index ?? 0 }
+  }
 
   // Detiene cualquier motor externo antes de cambiar de fuente.
   stopExternalEngines(item.source)
@@ -103,6 +113,28 @@ async function playItem(item) {
 
   updateNowPlaying(item)
   ctx.emit('track-changed', item)
+}
+
+// Reproduce un item de la cola manual y lo consume (se quita de la cola).
+function playFromQueue(item) {
+  ctx.state.queue = ctx.state.queue.filter((i) => i.id !== item.id)
+  ctx.emit('queue-changed')
+  ctx.updateStatusBar()
+  playItem(item)
+}
+
+// Reproduce por id desde la cola manual (compatibilidad).
+function playId(id) {
+  const item = ctx.state.queue.find((i) => i.id === id)
+  if (item) playFromQueue(item)
+}
+
+// Reproduce un indice de la lista de contexto.
+function playFromContext(index) {
+  const c = ctx.state.context
+  if (!c || !c.list[index]) return
+  c.index = index
+  playItem(c.list[index])
 }
 
 async function loadLocal(item) {
@@ -147,8 +179,9 @@ function stopExternalEngines(exceptSource) {
 function togglePlay() {
   const cur = getCurrent()
   if (!cur) {
-    // Si no hay pista activa, arranca la primera de la cola.
-    if (ctx.state.queue.length) playItem(ctx.state.queue[0])
+    // Sin pista activa: arranca la cola manual o, en su defecto, el contexto.
+    if (ctx.state.queue.length) playFromQueue(ctx.state.queue[0])
+    else if (ctx.state.context?.list?.length) playFromContext(0)
     return
   }
   if (ctx.state.isPlaying) pause()
@@ -180,42 +213,52 @@ function pause() {
 }
 
 function next(auto = false) {
-  const q = ctx.state.queue
-  if (!q.length) return
-  const idx = q.findIndex((i) => i.id === ctx.state.currentId)
-
   if (ctx.state.repeat === 'one' && auto) {
-    playItem(q[idx] || q[0])
+    const cur = getCurrent()
+    if (cur) playItem(cur)
     return
   }
-  let nextIdx
-  if (ctx.state.shuffle) {
-    nextIdx = randomIndexExcept(q.length, idx)
-  } else {
-    nextIdx = idx + 1
-    if (nextIdx >= q.length) {
-      if (ctx.state.repeat === 'all') nextIdx = 0
+  // 1) La cola manual tiene prioridad y se consume.
+  if (ctx.state.queue.length) {
+    const it = ctx.state.queue.shift()
+    ctx.emit('queue-changed')
+    ctx.updateStatusBar()
+    playItem(it)
+    return
+  }
+  // 2) Continua en la lista de contexto.
+  const c = ctx.state.context
+  if (c && c.list.length) {
+    if (ctx.state.shuffle) {
+      playFromContext(randomIndexExcept(c.list.length, c.index))
+      return
+    }
+    let ni = c.index + 1
+    if (ni >= c.list.length) {
+      if (ctx.state.repeat === 'all') ni = 0
       else {
         setPlaying(false)
         return
       }
     }
+    playFromContext(ni)
+    return
   }
-  playItem(q[nextIdx])
+  setPlaying(false)
 }
 
 function prev() {
-  const q = ctx.state.queue
-  if (!q.length) return
   // Si han pasado mas de 3s, reinicia la pista actual.
   if (getCurrent()?.source === 'local' && audio.currentTime > 3) {
     audio.currentTime = 0
     return
   }
-  const idx = q.findIndex((i) => i.id === ctx.state.currentId)
-  let prevIdx = idx - 1
-  if (prevIdx < 0) prevIdx = ctx.state.repeat === 'all' ? q.length - 1 : 0
-  playItem(q[prevIdx])
+  const c = ctx.state.context
+  if (c && c.list.length) {
+    let pi = c.index - 1
+    if (pi < 0) pi = ctx.state.repeat === 'all' ? c.list.length - 1 : 0
+    playFromContext(pi)
+  }
 }
 
 function randomIndexExcept(len, except) {
@@ -225,6 +268,21 @@ function randomIndexExcept(len, except) {
     r = Math.floor(Math.random() * len)
   } while (r === except)
   return r
+}
+
+// Pregunta periodicamente a los motores externos si estan sonando y ajusta el
+// icono play/pausa en consecuencia (los eventos del IFrame no siempre llegan).
+let externalSyncTimer = null
+function startExternalSync() {
+  if (externalSyncTimer) return
+  externalSyncTimer = setInterval(() => {
+    const cur = getCurrent()
+    if (!cur || cur.source === 'local') return
+    let playing = null
+    if (cur.source === 'youtube' && ctx.youtube?.isPlaying) playing = ctx.youtube.isPlaying()
+    else if (cur.source === 'spotify' && ctx.spotify?.isPlaying) playing = ctx.spotify.isPlaying()
+    if (playing !== null && playing !== ctx.state.isPlaying) setPlaying(playing)
+  }, 600)
 }
 
 // ---------------------------------------------------------------------

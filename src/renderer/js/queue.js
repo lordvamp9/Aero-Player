@@ -125,7 +125,7 @@ function render() {
       if (!ctx.state.isPlaying) li.classList.add('paused')
     }
 
-    const cover = item.coverUrl ? `background-image:url("${item.coverUrl}")` : ''
+    const cover = item.coverUrl ? `background-image:url('${item.coverUrl}')` : ''
     li.innerHTML = `
       <span class="qi-platform">${platformIcon(item.source, 14)}</span>
       <span class="qi-cover" style="${cover}"></span>
@@ -137,12 +137,8 @@ function render() {
       <span class="qi-eq"><span></span><span></span><span></span></span>
     `
 
-    li.addEventListener('dblclick', () => ctx.player.playItem(item))
-    li.addEventListener('click', (e) => {
-      if (e.detail === 1) {
-        // Un click selecciona visualmente; doble click reproduce.
-      }
-    })
+    // Reproduce el item de la cola y lo consume (modelo tipo Spotify).
+    li.addEventListener('click', () => ctx.player.playFromQueue(item))
     li.addEventListener('contextmenu', (e) => {
       e.preventDefault()
       openQueueMenu(e, item)
@@ -208,7 +204,7 @@ function wireQueueDnD() {
 // ---------------------------------------------------------------------
 function openQueueMenu(e, item) {
   showContextMenu(e.clientX, e.clientY, [
-    { label: 'Reproducir ahora', icon: iconPlay(), action: () => ctx.player.playItem(item) },
+    { label: 'Reproducir ahora', icon: iconPlay(), action: () => ctx.player.playFromQueue(item) },
     { label: 'Mover al inicio de la cola', icon: iconTop(), action: () => toTop(item.id) },
     { sep: true },
     {

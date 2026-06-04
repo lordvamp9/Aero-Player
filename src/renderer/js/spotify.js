@@ -25,6 +25,7 @@ export function initSpotify(context) {
     getTimes,
     setVolume,
     setMuted,
+    isPlaying: () => (lastState ? !lastState.paused : null),
   }
 }
 

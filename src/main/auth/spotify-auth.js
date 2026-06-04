@@ -32,7 +32,7 @@ function createPkce() {
 function getConfig() {
   const clientId = process.env.SPOTIFY_CLIENT_ID
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET
-  const redirectUri = process.env.SPOTIFY_REDIRECT_URI || 'http://localhost:3000/auth/spotify/callback'
+  const redirectUri = process.env.SPOTIFY_REDIRECT_URI || 'http://127.0.0.1:3000/auth/spotify/callback'
   if (!clientId || clientId === 'tu_api_aqui') {
     throw new Error('Configura SPOTIFY_CLIENT_ID en el archivo .env (copia .env.example).')
   }

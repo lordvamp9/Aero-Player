@@ -32,7 +32,9 @@ const ctx = {
     bus.dispatchEvent(new CustomEvent(name, { detail }))
   },
   state: {
-    queue: [],
+    queue: [], // cola manual (solo lo que el usuario agrega explicitamente)
+    currentTrack: null, // pista en reproduccion (no necesariamente en la cola)
+    context: null, // { list, index } lista desde la que se reproduce (siguiente/anterior)
     currentId: null,
     isPlaying: false,
     volume: 0.8,

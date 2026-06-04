@@ -154,7 +154,8 @@ function renderFlatList(tracks) {
     frag.appendChild(emptyMessage())
     return frag
   }
-  tracks.forEach((track, i) => frag.appendChild(trackRow(track, i + 1)))
+  // La lista visible es el contexto de reproduccion (siguiente/anterior).
+  tracks.forEach((track, i) => frag.appendChild(trackRow(track, i + 1, tracks, i)))
   return frag
 }
 
@@ -170,23 +171,28 @@ function renderGrouped(tracks, key) {
     if (!groups.has(k)) groups.set(k, [])
     groups.get(k).push(t)
   })
+  // Lista ordenada en el orden en que se muestra, para navegar de forma natural.
+  const ordered = []
   ;[...groups.keys()].sort((a, b) => a.localeCompare(b)).forEach((groupName) => {
     const header = document.createElement('div')
     header.className = 'group-header'
     header.textContent = groupName
     frag.appendChild(header)
-    groups.get(groupName).forEach((t, i) => frag.appendChild(trackRow(t, i + 1)))
+    groups.get(groupName).forEach((t) => {
+      const ci = ordered.push(t) - 1
+      frag.appendChild(trackRow(t, ci + 1, ordered, ci))
+    })
   })
   return frag
 }
 
-function trackRow(track, index) {
+function trackRow(track, displayIndex, contextList, contextIndex) {
   const row = document.createElement('div')
   row.className = 'track-row'
   if (track.id === ctx.state.currentId) row.classList.add('active')
-  const cover = track.coverUrl ? `background-image:url("${track.coverUrl}")` : ''
+  const cover = track.coverUrl ? `background-image:url('${track.coverUrl}')` : ''
   row.innerHTML = `
-    <span class="tr-index">${index}</span>
+    <span class="tr-index">${displayIndex}</span>
     <span class="tr-cover" style="${cover}">${track.coverUrl ? '' : platformIcon(track.source, 16)}</span>
     <span class="tr-main">
       <span class="tr-title">${escapeHtml(track.title)}</span>
@@ -196,11 +202,11 @@ function trackRow(track, index) {
     <span class="tr-platform">${platformIcon(track.source, 14)}</span>
     <span class="tr-dur">${track.durationFormatted || ''}</span>
   `
-  row.addEventListener('click', () => playFromLibrary(track))
+  row.addEventListener('click', () => playFromLibrary(track, contextList, contextIndex))
   row.addEventListener('contextmenu', (e) => {
     e.preventDefault()
     ctx.contextMenu.show(e.clientX, e.clientY, [
-      { label: 'Reproducir ahora', icon: '', action: () => playFromLibrary(track) },
+      { label: 'Reproducir ahora', icon: '', action: () => playFromLibrary(track, contextList, contextIndex) },
       { label: 'Agregar a la cola', icon: '', action: () => ctx.queue.add({ ...track }) },
       { sep: true },
       { label: 'Agregar a favoritos', icon: '', action: () => addFav(track) },
@@ -215,13 +221,9 @@ function trackRow(track, index) {
   return row
 }
 
-function playFromLibrary(track) {
-  let item = ctx.state.queue.find((i) => i.filePath && i.filePath === track.filePath)
-  if (!item) {
-    const id = ctx.queue.add({ ...track }, { silent: true })
-    item = ctx.state.queue.find((i) => i.id === id)
-  }
-  ctx.player.playItem(item)
+// Reproduce sin tocar la cola; la lista visible queda como contexto.
+function playFromLibrary(track, contextList, contextIndex) {
+  ctx.player.playItem(track, { list: contextList || [track], index: contextIndex || 0 })
 }
 
 function addFav(track) {
