@@ -1,111 +1,65 @@
 /* =====================================================================
    AERO PLAYER  ·  build/generate-icon.mjs
-   Genera build/icon.ico (multi-resolucion) y build/icon.png con el mismo
-   disco musical en estetica Aero. El .ico embebe 16/24/32/48/64/128/256
-   para que Windows lo muestre nitido en explorador, taskbar, alt-tab e
-   instalador NSIS.
+   Convierte build/konata.png en build/icon.ico (multi-resolución) y en
+   build/icon.png (PNG maestro para Linux y macOS). El .ico embebe los
+   tamaños 16/24/32/48/64/128/256 para que Windows muestre el icono
+   nítido en explorador, barra de tareas, alt-tab e instalador NSIS.
    Ejecutar con: npm run icon
    ===================================================================== */
 
-import { createCanvas } from '@napi-rs/canvas'
+import { createCanvas, loadImage } from '@napi-rs/canvas'
 import pngToIco from 'png-to-ico'
-import { writeFileSync } from 'node:fs'
+import { writeFileSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
+const SOURCE = join(__dirname, 'konata.png')
 const ICO_SIZES = [16, 24, 32, 48, 64, 128, 256]
 const MASTER_SIZE = 256
 
-function roundRect(c, x, y, w, h, r) {
-  c.beginPath()
-  c.moveTo(x + r, y)
-  c.arcTo(x + w, y, x + w, y + h, r)
-  c.arcTo(x + w, y + h, x, y + h, r)
-  c.arcTo(x, y + h, x, y, r)
-  c.arcTo(x, y, x + w, y, r)
-  c.closePath()
-}
+// Margen relativo alrededor del personaje para que el icono respire dentro
+// del cuadrado y no quede pegado a los bordes a tamaños pequeños.
+const PADDING_RATIO = 0.04
 
-// Dibuja el icono Aero a cualquier tamano usando coordenadas relativas a 256.
-function drawIcon(size) {
+function renderIcon(image, size) {
   const canvas = createCanvas(size, size)
   const c = canvas.getContext('2d')
-  const s = size / MASTER_SIZE
-  const cx = size / 2
-  const cy = size / 2
+  c.imageSmoothingEnabled = true
+  c.imageSmoothingQuality = 'high'
 
-  // Fondo redondeado tipo cristal
-  const bg = c.createLinearGradient(0, 0, 0, size)
-  bg.addColorStop(0, '#0b2050')
-  bg.addColorStop(1, '#03102b')
-  roundRect(c, 8 * s, 8 * s, size - 16 * s, size - 16 * s, 46 * s)
-  c.fillStyle = bg
-  c.fill()
+  const pad = Math.round(size * PADDING_RATIO)
+  const target = size - pad * 2
 
-  // Brillo superior
-  const shine = c.createLinearGradient(0, 8 * s, 0, size / 2)
-  shine.addColorStop(0, 'rgba(180,220,255,0.22)')
-  shine.addColorStop(1, 'rgba(180,220,255,0)')
-  roundRect(c, 8 * s, 8 * s, size - 16 * s, size / 2, 46 * s)
-  c.fillStyle = shine
-  c.fill()
+  // Escala la imagen original al cuadrado disponible conservando la
+  // proporción para no deformar el dibujo.
+  const ratio = Math.min(target / image.width, target / image.height)
+  const w = Math.round(image.width * ratio)
+  const h = Math.round(image.height * ratio)
+  const x = Math.round((size - w) / 2)
+  const y = Math.round((size - h) / 2)
 
-  // Disco principal
-  const discR = 78 * s
-  const disc = c.createRadialGradient(cx, cy - 20 * s, 8 * s, cx, cy, discR)
-  disc.addColorStop(0, '#bfe0ff')
-  disc.addColorStop(0.45, '#3f86ff')
-  disc.addColorStop(1, '#0a2a78')
-  c.beginPath()
-  c.arc(cx, cy, discR, 0, Math.PI * 2)
-  c.fillStyle = disc
-  c.fill()
-
-  // Surcos del disco (omitir a tamanos chicos donde se vuelven ruido)
-  if (size >= 32) {
-    c.strokeStyle = 'rgba(255,255,255,0.10)'
-    c.lineWidth = Math.max(1, 2 * s)
-    for (let r = 26 * s; r < discR; r += 9 * s) {
-      c.beginPath()
-      c.arc(cx, cy, r, 0, Math.PI * 2)
-      c.stroke()
-    }
-  }
-
-  // Centro del disco
-  c.beginPath()
-  c.arc(cx, cy, 20 * s, 0, Math.PI * 2)
-  c.fillStyle = '#06122b'
-  c.fill()
-  c.beginPath()
-  c.arc(cx, cy, 6 * s, 0, Math.PI * 2)
-  c.fillStyle = '#bfe0ff'
-  c.fill()
-
-  // Halo de brillo (solo a tamanos medios/grandes)
-  if (size >= 48) {
-    c.beginPath()
-    c.arc(cx, cy, discR + 6 * s, 0, Math.PI * 2)
-    c.strokeStyle = 'rgba(140,200,255,0.5)'
-    c.lineWidth = Math.max(1, 2 * s)
-    c.stroke()
-  }
-
+  c.drawImage(image, x, y, w, h)
   return canvas
 }
 
 async function main() {
-  // PNG maestro (256) sirve como icon.png para Linux/macOS y referencia.
-  const masterPng = drawIcon(MASTER_SIZE).toBuffer('image/png')
+  if (!existsSync(SOURCE)) {
+    throw new Error(`No se encontró ${SOURCE}. Colócalo en build/konata.png.`)
+  }
+
+  const image = await loadImage(SOURCE)
+
+  // PNG maestro a 256 px para Linux y macOS.
+  const masterPng = renderIcon(image, MASTER_SIZE).toBuffer('image/png')
   writeFileSync(join(__dirname, 'icon.png'), masterPng)
 
-  // Genera un PNG por cada tamano objetivo y los combina en un solo .ico.
-  const pngBuffers = ICO_SIZES.map((sz) => drawIcon(sz).toBuffer('image/png'))
+  // Un PNG por cada tamaño objetivo, combinados en un solo .ico.
+  const pngBuffers = ICO_SIZES.map((sz) => renderIcon(image, sz).toBuffer('image/png'))
   const ico = await pngToIco(pngBuffers)
   writeFileSync(join(__dirname, 'icon.ico'), ico)
 
-  console.log('Icono generado:')
+  console.log('Icono generado a partir de build/konata.png:')
   console.log('  build/icon.png  (' + MASTER_SIZE + 'x' + MASTER_SIZE + ')')
   console.log('  build/icon.ico  (multi-res: ' + ICO_SIZES.join(', ') + ')')
 }
