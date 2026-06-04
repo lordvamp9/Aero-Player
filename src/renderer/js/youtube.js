@@ -210,10 +210,12 @@ function renderVideoList(items, title) {
     row.addEventListener('click', () => playYt(item, items, idx))
     row.addEventListener('contextmenu', e => {
       e.preventDefault()
-      ctx.contextMenu.show(e.clientX, e.clientY, [
+      const menu = [
         { label: 'Reproducir ahora', action: () => playYt(item, items, idx) },
         { label: 'Agregar a la cola', action: () => ctx.queue.add({ ...item }) },
-      ])
+      ]
+      if (ctx.playlists) menu.push(ctx.playlists.showAddToPlaylistSubmenuItems(item))
+      ctx.contextMenu.show(e.clientX, e.clientY, menu)
     })
     frag.appendChild(row)
   })
@@ -244,6 +246,10 @@ function renderPlaylistList(playlists) {
       <span class="tr-platform">${ytIcon(14)}</span>
     `
     row.addEventListener('click', () => openPlaylist(pl))
+    row.addEventListener('contextmenu', (e) => {
+      e.preventDefault()
+      showYtPlaylistContextMenu(e, pl)
+    })
     frag.appendChild(row)
   })
   ctx.els.listViewBody.innerHTML = ''
@@ -261,3 +267,64 @@ async function openPlaylist(pl) {
 function playYt(item, list, index) {
   ctx.player.playItem(item, { list: list || [item], index: index || 0 })
 }
+
+// Menu contextual para una PLAYLIST de YouTube en el listado.
+function showYtPlaylistContextMenu(e, pl) {
+  ctx.contextMenu.show(e.clientX, e.clientY, [
+    {
+      label: 'Reproducir playlist',
+      action: async () => {
+        const res = await ctx.aero.youtubeGetAllPlaylistItems(pl.playlistId)
+        if (res.ok && res.items.length) {
+          ctx.player.playItem(res.items[0], { list: res.items, index: 0 })
+        }
+      },
+    },
+    {
+      label: 'Agregar playlist a la cola',
+      action: async () => {
+        const res = await ctx.aero.youtubeGetAllPlaylistItems(pl.playlistId)
+        if (res.ok && res.items.length) {
+          res.items.forEach((t) => ctx.queue.add(t, { silent: true }))
+          ctx.toast(`${res.items.length} canciones agregadas a la cola`, { platform: 'youtube' })
+        }
+      },
+    },
+    { sep: true },
+    buildImportSubmenu(pl, 'youtube'),
+  ])
+}
+
+// Construye el item "Importar a Mis playlists  >" con submenu (playlists + "Nueva").
+function buildImportSubmenu(externalPlaylist, source) {
+  const mine = ctx.playlists?.getAll() || []
+  const sub = [
+    ...mine.map((p) => ({
+      label: p.name,
+      thumb: p.coverBase64 || p.coverPath || null,
+      action: () =>
+        ctx.playlists.importFromExternalPlaylist({
+          source,
+          externalId: externalPlaylist.playlistId,
+          name: externalPlaylist.title,
+          coverUrl: externalPlaylist.coverUrl,
+          targetPlaylistId: p.id,
+        }),
+    })),
+  ]
+  if (mine.length) sub.push({ sep: true })
+  sub.push({
+    label: 'Crear nueva playlist...',
+    action: () =>
+      ctx.playlists.importFromExternalPlaylist({
+        source,
+        externalId: externalPlaylist.playlistId,
+        name: externalPlaylist.title,
+        coverUrl: externalPlaylist.coverUrl,
+        targetPlaylistId: null,
+      }),
+  })
+  return { label: 'Importar a Mis playlists', submenu: sub }
+}
+
+export { buildImportSubmenu }

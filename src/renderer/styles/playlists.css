@@ -1,0 +1,602 @@
+/* =====================================================================
+   AERO PLAYER  ·  playlists.css
+   Estilos del sistema completo de playlists propias: lista en el sidebar,
+   vista de contenido, modal de creacion, submenu glass y confirmaciones.
+   ===================================================================== */
+
+/* --------------------------------------------------------------------
+   LISTA DE MIS PLAYLISTS EN EL SIDEBAR
+   -------------------------------------------------------------------- */
+.my-playlists {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 4px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border-top: 1px solid rgba(60, 120, 220, 0.1);
+}
+
+.my-playlist-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 36px;
+  padding: 0 8px;
+  border-radius: 7px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.my-playlist-item:hover {
+  color: var(--text-primary);
+  background: linear-gradient(90deg, rgba(40, 90, 195, 0.18), rgba(20, 55, 140, 0.04));
+}
+.my-playlist-item.active {
+  color: #dcefff;
+  background: linear-gradient(90deg, rgba(56, 112, 220, 0.2), rgba(24, 60, 150, 0.04));
+  box-shadow: inset 2px 0 0 rgba(125, 185, 255, 0.55);
+}
+
+.mp-thumb {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  background-size: cover;
+  background-position: center;
+  background-color: rgba(15, 40, 110, 0.5);
+  border: 1px solid rgba(90, 150, 255, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(140, 195, 255, 0.7);
+}
+.mp-thumb.placeholder {
+  background: linear-gradient(135deg, rgba(40, 90, 200, 0.45), rgba(12, 36, 100, 0.7));
+}
+.mp-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.mp-name {
+  font-size: 12px;
+  color: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mp-count {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+/* Input inline para renombrar */
+.mp-rename-input {
+  flex: 1;
+  min-width: 0;
+  height: 22px;
+  padding: 0 6px;
+  font-size: 12px;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(120, 180, 255, 0.35);
+  border-radius: 4px;
+}
+
+.my-playlists-empty {
+  margin: 8px 6px 4px;
+  padding: 10px 12px;
+  font-size: 11px;
+  text-align: center;
+  color: var(--text-dim);
+  border: 1px dashed rgba(80, 140, 255, 0.18);
+  border-radius: 7px;
+  background: rgba(10, 28, 80, 0.18);
+}
+
+/* --------------------------------------------------------------------
+   VISTA DE CONTENIDO DE UNA PLAYLIST (HEADER + LISTA)
+   -------------------------------------------------------------------- */
+.playlist-view {
+  padding: 18px 22px 14px;
+}
+
+.playlist-header {
+  display: flex;
+  gap: 22px;
+  align-items: flex-end;
+  margin-bottom: 18px;
+}
+
+.playlist-cover-lg {
+  width: 200px;
+  height: 200px;
+  flex: 0 0 auto;
+  border-radius: 14px;
+  background-size: cover;
+  background-position: center;
+  background-color: rgba(18, 40, 96, 0.5);
+  border: 1px solid rgba(120, 180, 255, 0.16);
+  box-shadow: 0 20px 50px rgba(0, 12, 60, 0.55), inset 0 1px 0 rgba(180, 220, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.playlist-cover-lg.placeholder {
+  background: linear-gradient(135deg, rgba(40, 95, 215, 0.55), rgba(8, 22, 78, 0.85));
+}
+.playlist-cover-lg .placeholder-glyph {
+  opacity: 0.5;
+  color: rgba(200, 230, 255, 0.6);
+}
+
+.playlist-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 6px;
+}
+.playlist-label {
+  font-size: 10.5px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.playlist-name {
+  font-size: 32px;
+  font-weight: 200;
+  letter-spacing: 0.4px;
+  color: rgba(225, 240, 255, 0.95);
+  text-shadow: 0 2px 20px rgba(20, 60, 150, 0.4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.playlist-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.playlist-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* Boton principal: reproducir todo */
+.pl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  color: var(--text-primary);
+  background: linear-gradient(180deg, rgba(60, 120, 225, 0.34), rgba(34, 80, 180, 0.38));
+  border: 1px solid rgba(130, 185, 255, 0.22);
+  box-shadow: inset 0 1px 0 rgba(190, 225, 255, 0.16);
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  cursor: pointer;
+}
+.pl-btn:hover {
+  background: linear-gradient(180deg, rgba(74, 138, 245, 0.44), rgba(42, 95, 205, 0.48));
+  border-color: rgba(150, 200, 255, 0.34);
+}
+.pl-btn:active {
+  transform: scale(0.98);
+}
+.pl-btn.secondary {
+  background: linear-gradient(180deg, rgba(28, 62, 140, 0.22), rgba(14, 34, 96, 0.26));
+}
+
+/* Tabla de canciones de la playlist */
+.pl-tracks {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.pl-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 48px;
+  padding: 0 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  animation: trackFadeIn 0.22s ease both;
+}
+.pl-row:hover {
+  background: linear-gradient(90deg, rgba(40, 90, 195, 0.18), rgba(18, 48, 130, 0.06));
+  border-color: rgba(90, 150, 255, 0.15);
+}
+.pl-row.active {
+  background: linear-gradient(90deg, rgba(50, 105, 215, 0.3), rgba(22, 58, 150, 0.1));
+  border-color: rgba(120, 185, 255, 0.28);
+}
+.pl-row.dragging {
+  opacity: 0.4;
+}
+.pl-row.drag-over {
+  box-shadow: inset 0 2px 0 rgba(120, 190, 255, 0.85);
+}
+
+.pl-num {
+  position: relative;
+  flex: 0 0 26px;
+  text-align: center;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+.pl-num .pl-num-text {
+  display: block;
+}
+.pl-num .pl-num-play {
+  display: none;
+  color: var(--text-primary);
+}
+.pl-row:hover .pl-num-text {
+  display: none;
+}
+.pl-row:hover .pl-num-play {
+  display: block;
+}
+
+.pl-platform {
+  flex: 0 0 18px;
+  display: flex;
+  align-items: center;
+}
+.pl-cover {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  background-size: cover;
+  background-position: center;
+  background-color: rgba(15, 38, 100, 0.55);
+  border: 1px solid rgba(90, 150, 255, 0.15);
+}
+.pl-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.pl-title {
+  font-size: 13px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pl-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pl-dur {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------------
+   MODAL GLASS (crear / editar / confirmar)
+   -------------------------------------------------------------------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 5, 20, 0.7);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.modal-glass {
+  position: relative;
+  width: 400px;
+  padding: 22px 26px 20px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 35, 90, 0.92) 0%,
+    rgba(8, 20, 60, 0.96) 100%
+  );
+  border: 1px solid rgba(110, 175, 255, 0.22);
+  box-shadow:
+    0 24px 60px rgba(0, 10, 60, 0.55),
+    inset 0 1px 0 rgba(180, 220, 255, 0.1);
+  animation: modalOpen 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.modal-glass::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(180deg, rgba(170, 215, 255, 0.06), transparent);
+  pointer-events: none;
+}
+
+@keyframes modalOpen {
+  from { opacity: 0; transform: scale(0.95) translateY(-6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(80, 140, 255, 0.14);
+}
+.modal-title {
+  font-size: 14px;
+  font-weight: 300;
+  letter-spacing: 0.5px;
+  color: var(--text-primary);
+}
+.modal-close {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
+}
+.modal-close:hover {
+  color: var(--text-primary);
+  background: rgba(40, 90, 195, 0.3);
+  border-color: rgba(110, 170, 255, 0.2);
+}
+
+.modal-body {
+  position: relative;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+.modal-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.modal-label {
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+}
+.modal-input {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(70, 120, 220, 0.22);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: rgba(190, 220, 255, 0.92);
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 12.5px;
+  font-weight: 300;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.modal-input:focus {
+  border-color: rgba(120, 180, 255, 0.4);
+  box-shadow: 0 0 12px rgba(60, 140, 255, 0.18);
+}
+
+.modal-msg {
+  position: relative;
+  margin-top: 14px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.modal-foot {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.modal-btn {
+  position: relative;
+  padding: 7px 18px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: 'Segoe UI', sans-serif;
+  font-weight: 300;
+  cursor: pointer;
+  border: 1px solid rgba(70, 130, 230, 0.22);
+  background: linear-gradient(180deg, rgba(25, 60, 160, 0.45), rgba(12, 35, 110, 0.6));
+  color: rgba(190, 220, 255, 0.92);
+  box-shadow: inset 0 1px 0 rgba(180, 220, 255, 0.1);
+  overflow: hidden;
+  transition: background 0.12s, border-color 0.12s, transform 0.1s;
+}
+.modal-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(180, 220, 255, 0.08), transparent);
+  pointer-events: none;
+}
+.modal-btn:hover {
+  background: linear-gradient(180deg, rgba(40, 90, 200, 0.55), rgba(20, 55, 160, 0.7));
+  border-color: rgba(120, 180, 255, 0.34);
+}
+.modal-btn:active {
+  transform: scale(0.97);
+}
+.modal-btn.secondary {
+  background: linear-gradient(180deg, rgba(20, 50, 130, 0.22), rgba(10, 28, 85, 0.28));
+}
+.modal-btn-danger {
+  border-color: rgba(220, 80, 80, 0.34);
+  background: linear-gradient(180deg, rgba(150, 30, 30, 0.5), rgba(95, 18, 18, 0.62));
+  color: rgba(255, 175, 165, 0.92);
+}
+.modal-btn-danger:hover {
+  background: linear-gradient(180deg, rgba(195, 50, 50, 0.6), rgba(135, 25, 25, 0.75));
+  border-color: rgba(255, 110, 110, 0.45);
+}
+.modal-btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --------------------------------------------------------------------
+   COVER PICKER (modal de creacion / edicion)
+   -------------------------------------------------------------------- */
+.cover-picker {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    linear-gradient(135deg, rgba(30, 70, 180, 0.45), rgba(10, 30, 100, 0.7));
+  border: 1px solid rgba(110, 175, 255, 0.2);
+  color: rgba(140, 195, 255, 0.55);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.cover-picker::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 45%;
+  background: linear-gradient(180deg, rgba(180, 220, 255, 0.1), transparent);
+  border-radius: 10px 10px 50% 50% / 10px 10px 14% 14%;
+  pointer-events: none;
+}
+.cover-picker:hover {
+  border-color: rgba(140, 200, 255, 0.45);
+  box-shadow: 0 0 16px rgba(60, 140, 255, 0.2);
+}
+.cover-picker.has-image {
+  background-size: cover;
+  background-position: center;
+  color: transparent;
+}
+.cover-picker.has-image:hover::after {
+  content: 'Cambiar';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 300;
+  color: rgba(225, 240, 255, 0.95);
+  background: rgba(2, 10, 30, 0.55);
+}
+
+/* --------------------------------------------------------------------
+   SUBMENU DEL MENU CONTEXTUAL
+   -------------------------------------------------------------------- */
+.ctx-item.has-submenu {
+  position: relative;
+  justify-content: space-between;
+}
+.ctx-arrow {
+  display: inline-flex;
+  opacity: 0.55;
+  margin-left: 8px;
+}
+
+.context-submenu {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  min-width: 200px;
+  padding: 6px;
+  border-radius: 9px;
+  background: linear-gradient(180deg, rgba(12, 28, 75, 0.97), rgba(7, 18, 52, 0.98));
+  border: 1px solid rgba(110, 170, 255, 0.2);
+  box-shadow:
+    0 12px 30px rgba(0, 10, 60, 0.5),
+    inset 0 1px 0 rgba(160, 210, 255, 0.08);
+  overflow: hidden;
+  animation: fadeIn 0.12s ease;
+  z-index: 1001;
+}
+.context-submenu .ctx-item {
+  padding-right: 11px;
+}
+.ctx-thumb {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background-size: cover;
+  background-position: center;
+  background-color: rgba(15, 38, 100, 0.5);
+  border: 1px solid rgba(90, 150, 255, 0.15);
+}
+.ctx-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------
+   TOAST CON SPINNER (importacion)
+   -------------------------------------------------------------------- */
+.toast.toast-progress .toast-icon {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(120, 190, 255, 0.25);
+  border-top-color: rgba(180, 220, 255, 0.9);
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

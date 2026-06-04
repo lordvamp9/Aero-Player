@@ -9,8 +9,8 @@
     "dev": "concurrently -k -n VITE,ELECTRON -c cyan,magenta \"vite\" \"electron .\"",
     "build": "vite build",
     "icon": "node build/generate-icon.mjs",
-    "dist": "npm run build && electron-builder",
-    "dist:win": "npm run build && electron-builder --win"
+    "dist": "npm run build && electron-builder --config electron-builder.config.js",
+    "dist:win": "npm run build && electron-builder --config electron-builder.config.js --win"
   },
   "dependencies": {
     "dotenv": "^16.4.5",

@@ -16,6 +16,7 @@ const store = new Store({
     },
     library: [],
     favorites: [],
+    playlists: [],
     auth: {
       google: null,
       spotify: null,

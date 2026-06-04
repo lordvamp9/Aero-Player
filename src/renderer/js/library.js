@@ -108,25 +108,15 @@ function renderView(view) {
   currentView = view
   const tracks = ctx.state.library
 
-  let title = 'Toda la musica'
+  let title = 'Local'
   let body
 
-  if (view === 'all') {
-    title = 'Toda la musica'
-    body = renderFlatList(tracks)
-  } else if (view === 'favorites') {
+  if (view === 'favorites') {
     title = 'Favoritos'
     body = renderFlatList(ctx.state.favorites)
-  } else if (view === 'albums') {
-    title = 'Albumes'
-    body = renderGrouped(tracks, 'album')
-  } else if (view === 'artists') {
-    title = 'Artistas'
-    body = renderGrouped(tracks, 'artist')
-  } else if (view === 'genres') {
-    title = 'Generos'
-    body = renderGrouped(tracks, 'genre')
   } else {
+    // Vista por defecto: lista plana de la biblioteca local.
+    title = 'Local'
     body = renderFlatList(tracks)
   }
 
@@ -205,12 +195,14 @@ function trackRow(track, displayIndex, contextList, contextIndex) {
   row.addEventListener('click', () => playFromLibrary(track, contextList, contextIndex))
   row.addEventListener('contextmenu', (e) => {
     e.preventDefault()
-    ctx.contextMenu.show(e.clientX, e.clientY, [
-      { label: 'Reproducir ahora', icon: '', action: () => playFromLibrary(track, contextList, contextIndex) },
-      { label: 'Agregar a la cola', icon: '', action: () => ctx.queue.add({ ...track }) },
+    const items = [
+      { label: 'Reproducir ahora', action: () => playFromLibrary(track, contextList, contextIndex) },
+      { label: 'Agregar a la cola', action: () => ctx.queue.add({ ...track }) },
       { sep: true },
-      { label: 'Agregar a favoritos', icon: '', action: () => addFav(track) },
-    ])
+      { label: 'Agregar a favoritos', action: () => addFav(track) },
+    ]
+    if (ctx.playlists) items.push(ctx.playlists.showAddToPlaylistSubmenuItems(track))
+    ctx.contextMenu.show(e.clientX, e.clientY, items)
   })
   // Permite arrastrar pistas de la biblioteca hacia la cola.
   row.draggable = true

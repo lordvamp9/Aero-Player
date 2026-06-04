@@ -171,4 +171,46 @@ async function searchMusic(query, maxResults = 30) {
   }
 }
 
-module.exports = { getLikedVideos, getMyPlaylists, getPlaylistItems, searchMusic }
+// ---- Todos los items de una playlist (paginacion completa) ----
+async function getAllPlaylistItems(playlistId) {
+  const yt = getYouTube()
+  if (!yt) return { ok: false, error: 'No autenticado', items: [] }
+  try {
+    const collected = []
+    let pageToken = undefined
+    do {
+      const res = await yt.playlistItems.list({
+        part: ['snippet'],
+        playlistId,
+        maxResults: 50,
+        pageToken,
+      })
+      ;(res.data.items || []).forEach((item) => {
+        const vid = item.snippet?.resourceId?.videoId
+        if (!vid) return
+        collected.push({
+          id: 'yt-' + vid,
+          source: 'youtube',
+          videoId: vid,
+          title: item.snippet.title,
+          artist: item.snippet.videoOwnerChannelTitle || 'YouTube',
+          album: '',
+          coverUrl: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url || null,
+          duration: 0,
+          durationFormatted: '',
+        })
+      })
+      pageToken = res.data.nextPageToken || undefined
+    } while (pageToken)
+
+    // Enriquece duraciones en lotes de 50.
+    for (let i = 0; i < collected.length; i += 50) {
+      await enrichWithDuration(yt, collected.slice(i, i + 50))
+    }
+    return { ok: true, items: collected }
+  } catch (err) {
+    return { ok: false, error: String(err.message || err), items: [] }
+  }
+}
+
+module.exports = { getLikedVideos, getMyPlaylists, getPlaylistItems, getAllPlaylistItems, searchMusic }

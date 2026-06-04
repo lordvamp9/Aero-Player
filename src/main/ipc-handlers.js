@@ -3,13 +3,16 @@
 // Registro central de todos los canales IPC entre el proceso principal y el
 // renderer: sistema de archivos, autenticacion, persistencia y ventana.
 const { ipcMain, dialog, BrowserWindow } = require('electron')
+const fs = require('fs')
+const path = require('path')
 const { scanFolder } = require('./file-scanner')
 const { readMetadata } = require('./metadata-reader')
 const { store } = require('./store')
 const { startGoogleAuth, logoutGoogle, getGoogleStatus } = require('./auth/google-auth')
 const { startSpotifyAuth, logoutSpotify, getSpotifyStatus } = require('./auth/spotify-auth')
-const { getLikedVideos, getMyPlaylists, getPlaylistItems, searchMusic } = require('./youtube-api')
+const { getLikedVideos, getMyPlaylists, getPlaylistItems, getAllPlaylistItems, searchMusic } = require('./youtube-api')
 const spotifyApi = require('./spotify-api')
+const playlists = require('./playlists-store')
 
 let registered = false
 
@@ -78,7 +81,44 @@ function registerIpcHandlers(mainWindow) {
   ipcMain.handle('spotify-get-playlists', async () => spotifyApi.getPlaylists())
   ipcMain.handle('spotify-get-saved-albums', async () => spotifyApi.getSavedAlbums())
   ipcMain.handle('spotify-get-playlist-tracks', async (_e, id) => spotifyApi.getPlaylistTracks(id))
+  ipcMain.handle('spotify-get-all-playlist-tracks', async (_e, id) => spotifyApi.getAllPlaylistTracks(id))
   ipcMain.handle('spotify-get-album-tracks', async (_e, id) => spotifyApi.getAlbumTracks(id))
+  ipcMain.handle('spotify-search-tracks', async (_e, q) => spotifyApi.searchTracks(q))
+
+  // ---- YouTube: paginacion completa para importar playlists enteras ----
+  ipcMain.handle('youtube-get-all-playlist-items', async (_e, id) => getAllPlaylistItems(id))
+
+  // ---- Playlists propias ----
+  ipcMain.handle('playlists-get-all', async () => playlists.getAll())
+  ipcMain.handle('playlists-create', async (_e, data) => playlists.create(data || {}))
+  ipcMain.handle('playlists-update', async (_e, id, data) => playlists.update(id, data || {}))
+  ipcMain.handle('playlists-delete', async (_e, id) => playlists.remove(id))
+  ipcMain.handle('playlists-add-track', async (_e, id, track) => playlists.addTrack(id, track))
+  ipcMain.handle('playlists-add-bulk', async (_e, id, tracks) => playlists.addTracksBulk(id, tracks))
+  ipcMain.handle('playlists-remove-track', async (_e, id, trackId) => playlists.removeTrack(id, trackId))
+  ipcMain.handle('playlists-reorder', async (_e, id, from, to) => playlists.reorder(id, from, to))
+  ipcMain.handle('playlists-move-edge', async (_e, id, trackId, edge) => playlists.moveTrackToEdge(id, trackId, edge))
+
+  // ---- Dialogo nativo de imagen (devuelve base64) ----
+  ipcMain.handle('open-image-dialog', async () => {
+    const win = BrowserWindow.getFocusedWindow() || mainWindow
+    const result = await dialog.showOpenDialog(win, {
+      title: 'Selecciona una imagen de portada',
+      properties: ['openFile'],
+      filters: [{ name: 'Imagenes', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp'] }],
+    })
+    if (result.canceled || !result.filePaths.length) return { canceled: true }
+    try {
+      const filePath = result.filePaths[0]
+      const buf = fs.readFileSync(filePath)
+      const ext = path.extname(filePath).toLowerCase().slice(1)
+      const mime = ext === 'jpg' ? 'jpeg' : ext
+      const base64 = `data:image/${mime};base64,${buf.toString('base64')}`
+      return { canceled: false, path: filePath, base64 }
+    } catch (err) {
+      return { canceled: false, error: String(err.message || err) }
+    }
+  })
 
   // ---- Persistencia ----
   ipcMain.handle('store-get', async (_e, key) => store.get(key))

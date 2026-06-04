@@ -203,7 +203,7 @@ function wireQueueDnD() {
 // Menu contextual
 // ---------------------------------------------------------------------
 function openQueueMenu(e, item) {
-  showContextMenu(e.clientX, e.clientY, [
+  const items = [
     { label: 'Reproducir ahora', icon: iconPlay(), action: () => ctx.player.playFromQueue(item) },
     { label: 'Mover al inicio de la cola', icon: iconTop(), action: () => toTop(item.id) },
     { sep: true },
@@ -212,14 +212,18 @@ function openQueueMenu(e, item) {
       icon: iconHeart(),
       action: () => toggleFavorite(item),
     },
-    { sep: true },
-    { label: 'Eliminar de la cola', icon: iconTrash(), action: () => remove(item.id) },
-  ])
+  ]
+  if (ctx.playlists) items.push(ctx.playlists.showAddToPlaylistSubmenuItems(item))
+  items.push({ sep: true })
+  items.push({ label: 'Eliminar de la cola', icon: iconTrash(), action: () => remove(item.id) })
+  showContextMenu(e.clientX, e.clientY, items)
 }
 
 function showContextMenu(x, y, items) {
   const menu = ctx.els.contextMenu
   menu.innerHTML = '<div class="glass-shine-layer"></div>'
+  let activeSubmenu = null
+
   items.forEach((it) => {
     if (it.sep) {
       const sep = document.createElement('div')
@@ -228,12 +232,36 @@ function showContextMenu(x, y, items) {
       return
     }
     const row = document.createElement('div')
-    row.className = 'ctx-item'
-    row.innerHTML = `${it.icon || ''}<span>${escapeHtml(it.label)}</span>`
-    row.addEventListener('click', () => {
-      hideContextMenu()
-      it.action && it.action()
-    })
+    row.className = 'ctx-item' + (it.submenu ? ' has-submenu' : '')
+    const arrow = it.submenu
+      ? '<span class="ctx-arrow"><svg viewBox="0 0 24 24" width="10" height="10"><path fill="currentColor" d="M9 6l6 6-6 6z"/></svg></span>'
+      : ''
+    row.innerHTML = `${it.icon || ''}<span class="ctx-label">${escapeHtml(it.label)}</span>${arrow}`
+
+    if (it.submenu) {
+      // Construye el submenu al hacer hover/click.
+      const open = () => {
+        if (activeSubmenu) activeSubmenu.remove()
+        const sub = renderSubmenu(it.submenu, () => hideContextMenu())
+        row.appendChild(sub)
+        activeSubmenu = sub
+      }
+      const close = (evt) => {
+        // Mantenlo abierto si el cursor pasa al submenu.
+        if (evt && evt.relatedTarget && row.contains(evt.relatedTarget)) return
+        if (activeSubmenu) {
+          activeSubmenu.remove()
+          activeSubmenu = null
+        }
+      }
+      row.addEventListener('mouseenter', open)
+      row.addEventListener('mouseleave', close)
+    } else {
+      row.addEventListener('click', () => {
+        hideContextMenu()
+        it.action && it.action()
+      })
+    }
     menu.appendChild(row)
   })
 
@@ -246,8 +274,35 @@ function showContextMenu(x, y, items) {
   menu.style.top = py + 'px'
 }
 
+function renderSubmenu(items, onClose) {
+  const sub = document.createElement('div')
+  sub.className = 'context-submenu'
+  items.forEach((it) => {
+    if (it.sep) {
+      const sep = document.createElement('div')
+      sep.className = 'ctx-sep'
+      sub.appendChild(sep)
+      return
+    }
+    const row = document.createElement('div')
+    row.className = 'ctx-item'
+    const thumb = it.thumb
+      ? `<span class="ctx-thumb" style="background-image:url('${it.thumb}')"></span>`
+      : it.icon || ''
+    row.innerHTML = `${thumb}<span class="ctx-label">${escapeHtml(it.label)}</span>`
+    row.addEventListener('click', (e) => {
+      e.stopPropagation()
+      onClose && onClose()
+      it.action && it.action()
+    })
+    sub.appendChild(row)
+  })
+  return sub
+}
+
 function hideContextMenu() {
   ctx.els.contextMenu.hidden = true
+  ctx.els.contextMenu.querySelectorAll('.context-submenu').forEach((s) => s.remove())
 }
 
 function wireContextDismiss() {

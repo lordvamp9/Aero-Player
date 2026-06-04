@@ -1,10 +1,14 @@
 'use strict'
 
-// Carga las variables de entorno (.env) antes que nada.
-require('dotenv').config()
-
-const { app, BrowserWindow, protocol, net } = require('electron')
+const { app } = require('electron')
 const path = require('path')
+
+// Carga las variables de entorno (.env) desde el directorio raiz de la app.
+// En produccion process.cwd() no apunta al directorio de la app, asi que
+// usamos app.getAppPath() para encontrar el .env empaquetado.
+require('dotenv').config({ path: path.join(app.getAppPath(), '.env') })
+
+const { BrowserWindow, protocol, net } = require('electron')
 const { pathToFileURL } = require('url')
 const { registerIpcHandlers } = require('./ipc-handlers')
 
@@ -76,6 +80,7 @@ app.whenReady().then(() => {
     const decoded = decodeURIComponent(raw.replace(/^\/+/, ''))
     return net.fetch(pathToFileURL(decoded).toString())
   })
+
 
   createWindow()
 

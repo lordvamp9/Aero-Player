@@ -48,9 +48,6 @@ export function initPlayer(context) {
     isLocalActive: () => getCurrent()?.source === 'local' && ctx.state.isPlaying,
   }
 
-  // Sincroniza el icono play/pausa con el estado real de los motores externos
-  // (YouTube/Spotify) por si algun evento no llega a tiempo.
-  startExternalSync()
 }
 
 // ---------------------------------------------------------------------
@@ -270,20 +267,6 @@ function randomIndexExcept(len, except) {
   return r
 }
 
-// Pregunta periodicamente a los motores externos si estan sonando y ajusta el
-// icono play/pausa en consecuencia (los eventos del IFrame no siempre llegan).
-let externalSyncTimer = null
-function startExternalSync() {
-  if (externalSyncTimer) return
-  externalSyncTimer = setInterval(() => {
-    const cur = getCurrent()
-    if (!cur || cur.source === 'local') return
-    let playing = null
-    if (cur.source === 'youtube' && ctx.youtube?.isPlaying) playing = ctx.youtube.isPlaying()
-    else if (cur.source === 'spotify' && ctx.spotify?.isPlaying) playing = ctx.spotify.isPlaying()
-    if (playing !== null && playing !== ctx.state.isPlaying) setPlaying(playing)
-  }, 600)
-}
 
 // ---------------------------------------------------------------------
 // Estado de reproduccion + UI

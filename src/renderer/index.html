@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="./styles/animations.css" />
     <link rel="stylesheet" href="./styles/sidebar.css" />
     <link rel="stylesheet" href="./styles/player.css" />
+    <link rel="stylesheet" href="./styles/playlists.css" />
   </head>
   <body>
     <div class="app-window" id="app-window">
@@ -137,7 +138,7 @@
               </div>
             </section>
 
-            <!-- Seccion Biblioteca local -->
+            <!-- Seccion Biblioteca (Local + Playlists propias) -->
             <section class="src-section" data-source="local">
               <div class="src-header">
                 <span class="src-logo folder">
@@ -149,14 +150,12 @@
                     <path fill="rgba(180,220,255,.35)" d="M10 4H4a2 2 0 0 0-2 2v2h20V8a2 2 0 0 0-2-2h-8l-2-2z" />
                   </svg>
                 </span>
-                <span class="src-name">Biblioteca local</span>
+                <span class="src-name">Biblioteca</span>
               </div>
               <div class="src-body">
                 <ul class="src-list">
-                  <li class="src-item active" data-local="all"><span class="dot"></span>Toda la musica</li>
-                  <li class="src-item" data-local="albums"><span class="dot"></span>Albumes</li>
-                  <li class="src-item" data-local="artists"><span class="dot"></span>Artistas</li>
-                  <li class="src-item" data-local="genres"><span class="dot"></span>Generos</li>
+                  <li class="src-item active" data-local="all"><span class="dot"></span>Local</li>
+                  <li class="src-item" data-section="playlists"><span class="dot"></span>Mis playlists</li>
                 </ul>
                 <button class="add-folder-btn" id="btn-add-folder">
                   <svg viewBox="0 0 24 24" width="14" height="14">
@@ -164,6 +163,11 @@
                   </svg>
                   <span>Agregar carpeta</span>
                 </button>
+              </div>
+              <!-- Lista de playlists propias del usuario -->
+              <ul class="my-playlists" id="my-playlists" hidden></ul>
+              <div class="my-playlists-empty" id="my-playlists-empty" hidden>
+                Sin playlists. Click derecho para crear una.
               </div>
             </section>
           </div>
@@ -282,11 +286,11 @@
               </svg>
             </button>
             <button class="ctrl-btn play-btn" id="btn-play" title="Reproducir">
-              <svg class="icon-play" viewBox="0 0 24 24" width="26" height="26">
+              <svg class="icon-play" viewBox="0 0 24 24" width="22" height="22">
                 <path fill="currentColor" d="M8 5v14l11-7z" />
               </svg>
-              <svg class="icon-pause" viewBox="0 0 24 24" width="26" height="26" hidden>
-                <path fill="currentColor" d="M7 5h4v14H7zM13 5h4v14h-4z" />
+              <svg class="icon-pause" viewBox="0 0 24 24" width="22" height="22" hidden>
+                <path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
               </svg>
             </button>
             <button class="ctrl-btn" id="btn-next" title="Siguiente">

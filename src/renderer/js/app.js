@@ -10,8 +10,9 @@ import { initQueue } from './queue.js'
 import { initLibrary } from './library.js'
 import { initSidebar } from './sidebar.js'
 import { initYouTube, searchYouTube } from './youtube.js'
-import { initSpotify } from './spotify.js'
+import { initSpotify, searchSpotify } from './spotify.js'
 import { initDragDrop } from './drag-drop.js'
+import { initPlaylists } from './playlists.js'
 
 // El puente seguro expuesto desde preload.js. Si no existe (por ejemplo al
 // abrir el HTML fuera de Electron) se usa un stub para no romper la UI.
@@ -135,17 +136,111 @@ function wireWindowControls() {
 // ---------------------------------------------------------------------
 function wireSearch() {
   let t
+  let lastPlatformOrder = ['youtube', 'spotify'] // alternancia
   ctx.els.search.addEventListener('input', (e) => {
     clearTimeout(t)
     const term = e.target.value.trim()
     t = setTimeout(() => {
       ctx.emit('search', term)
-      // Busqueda en YouTube si hay sesion activa.
-      if (term.length >= 3 && ctx.state.auth.google.connected) {
-        searchYouTube(term)
-      }
-    }, 350)
+      if (term.length >= 2) runHybridSearch(term, lastPlatformOrder)
+    }, 320)
   })
+}
+
+// Lanza busqueda paralela en YouTube y Spotify (si hay sesion) y unifica.
+async function runHybridSearch(term, order) {
+  const ytConnected = ctx.state.auth.google.connected
+  const spConnected = ctx.state.auth.spotify.connected
+  if (!ytConnected && !spConnected) return
+
+  // Estado de carga: indica que esta buscando en ambas fuentes.
+  showSearchLoading(term, ytConnected, spConnected)
+
+  const ytPromise = ytConnected
+    ? ctx.aero.youtubeSearchMusic(term).catch(() => ({ ok: false, items: [] }))
+    : Promise.resolve({ ok: false, items: [] })
+  const spPromise = spConnected
+    ? ctx.aero.spotifySearchTracks(term).catch(() => ({ ok: false, items: [] }))
+    : Promise.resolve({ ok: false, items: [] })
+
+  const [ytRes, spRes] = await Promise.allSettled([ytPromise, spPromise])
+  const ytItems = (ytRes.status === 'fulfilled' && ytRes.value.items) || []
+  const spItems = (spRes.status === 'fulfilled' && spRes.value.items) || []
+
+  // Maximo 10 de cada lado, alternados (Spotify primero por defecto).
+  const ytTop = ytItems.slice(0, 10)
+  const spTop = spItems.slice(0, 10)
+  const merged = interleave(spTop, ytTop)
+  renderHybridResults(term, merged, ytTop.length, spTop.length)
+}
+
+function interleave(a, b) {
+  const out = []
+  const max = Math.max(a.length, b.length)
+  for (let i = 0; i < max; i++) {
+    if (a[i]) out.push(a[i])
+    if (b[i]) out.push(b[i])
+  }
+  return out
+}
+
+function showSearchLoading(term, ytConnected, spConnected) {
+  const sources = []
+  if (spConnected) sources.push('Spotify')
+  if (ytConnected) sources.push('YouTube')
+  ctx.els.listViewTitle.textContent = `Buscando "${term}"`
+  ctx.els.listViewCount.textContent = sources.length ? `en ${sources.join(' y ')}...` : ''
+  ctx.els.listViewBody.innerHTML = '<div class="list-empty">Buscando...</div>'
+  ctx.els.listView.querySelector('.list-view-head').style.display = ''
+  ctx.els.listView.hidden = false
+  ctx.els.nowPlaying.style.opacity = '0.15'
+}
+
+function renderHybridResults(term, items, ytCount, spCount) {
+  ctx.els.listViewTitle.textContent = `Resultados para "${term}"`
+  ctx.els.listViewCount.textContent = items.length
+    ? `${spCount} Spotify · ${ytCount} YouTube`
+    : 'Sin resultados'
+  ctx.els.listViewBody.innerHTML = ''
+
+  if (!items.length) {
+    ctx.els.listViewBody.innerHTML =
+      '<div class="list-empty">Sin resultados. Conecta YouTube o Spotify para ampliar la busqueda.</div>'
+    return
+  }
+
+  const frag = document.createDocumentFragment()
+  items.forEach((item, i) => {
+    const row = document.createElement('div')
+    row.className = 'track-row'
+    if (item.id === ctx.state.currentId) row.classList.add('active')
+    const cover = item.coverUrl ? `background-image:url('${item.coverUrl}')` : ''
+    row.innerHTML = `
+      <span class="tr-index">${i + 1}</span>
+      <span class="tr-platform">${platformIcon(item.source, 16)}</span>
+      <span class="tr-cover" style="${cover}">${item.coverUrl ? '' : platformIcon(item.source, 14)}</span>
+      <span class="tr-main">
+        <span class="tr-title">${escapeHtml(item.title)}</span>
+        <span class="tr-sub">${escapeHtml(item.artist)}</span>
+      </span>
+      <span class="tr-album">${escapeHtml(item.album || '')}</span>
+      <span class="tr-dur">${item.durationFormatted || ''}</span>
+    `
+    row.addEventListener('click', () => {
+      ctx.player.playItem(item, { list: items, index: i })
+    })
+    row.addEventListener('contextmenu', (e) => {
+      e.preventDefault()
+      ctx.contextMenu.show(e.clientX, e.clientY, [
+        { label: 'Reproducir ahora', action: () => ctx.player.playItem(item, { list: items, index: i }) },
+        { label: 'Agregar a la cola', action: () => ctx.queue.add({ ...item }) },
+        { sep: true },
+        ctx.playlists.showAddToPlaylistSubmenuItems(item),
+      ])
+    })
+    frag.appendChild(row)
+  })
+  ctx.els.listViewBody.appendChild(frag)
 }
 
 // ---------------------------------------------------------------------
@@ -153,13 +248,16 @@ function wireSearch() {
 // ---------------------------------------------------------------------
 function toast(message, opts = {}) {
   const container = ctx.els.toastContainer
-  if (!container) return
+  if (!container) return null
   while (container.children.length >= 3) container.removeChild(container.firstChild)
 
   const el = document.createElement('div')
-  el.className = 'toast'
+  el.className = 'toast' + (opts.progress ? ' toast-progress' : '')
+
   let iconHtml = ''
-  if (opts.platform === 'youtube') iconHtml = ytIcon(15)
+  if (opts.progress) {
+    iconHtml = '' // el CSS dibuja el spinner
+  } else if (opts.platform === 'youtube') iconHtml = ytIcon(15)
   else if (opts.platform === 'spotify') iconHtml = spIcon(15)
   else iconHtml = infoIcon()
 
@@ -168,10 +266,18 @@ function toast(message, opts = {}) {
   )}</span>`
   container.appendChild(el)
 
-  setTimeout(() => {
+  const timer = setTimeout(() => {
     el.classList.add('leaving')
     setTimeout(() => el.remove(), 320)
   }, opts.duration || 3000)
+
+  return {
+    remove() {
+      clearTimeout(timer)
+      el.classList.add('leaving')
+      setTimeout(() => el.remove(), 320)
+    },
+  }
 }
 
 // ---------------------------------------------------------------------
@@ -243,6 +349,7 @@ async function boot() {
   initSpotify(ctx)
   initSidebar(ctx)
   initDragDrop(ctx)
+  initPlaylists(ctx)
 
   updateStatusBar()
   ctx.emit('queue-changed')

@@ -4,8 +4,8 @@ module.exports = {
   productName: 'MediaPlayer',
   copyright: 'Copyright 2024 Aero Player',
   directories: { output: 'release', buildResources: 'build' },
-  files: ['dist/**/*', 'src/main/**/*', 'package.json'],
-  asarUnpack: ['**/*.node'],
+  asar: false,
+  files: ['dist/**/*', 'src/main/**/*', 'package.json', '.env'],
   win: {
     target: [{ target: 'nsis', arch: ['x64'] }],
     icon: 'build/icon.ico',

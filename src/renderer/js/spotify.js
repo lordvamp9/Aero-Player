@@ -253,15 +253,97 @@ function renderTrackList(items, title) {
     row.addEventListener('click', () => playSp(item, items, i))
     row.addEventListener('contextmenu', (e) => {
       e.preventDefault()
-      ctx.contextMenu.show(e.clientX, e.clientY, [
+      const menu = [
         { label: 'Reproducir ahora', action: () => playSp(item, items, i) },
         { label: 'Agregar a la cola', action: () => ctx.queue.add({ ...item }) },
-      ])
+      ]
+      if (ctx.playlists) menu.push(ctx.playlists.showAddToPlaylistSubmenuItems(item))
+      ctx.contextMenu.show(e.clientX, e.clientY, menu)
     })
     frag.appendChild(row)
   })
   ctx.els.listViewBody.innerHTML = ''
   ctx.els.listViewBody.appendChild(frag)
+}
+
+// Menu contextual para playlist/album de Spotify en el listado.
+function showSpCollectionContextMenu(e, it) {
+  const isPlaylist = !!it.playlistId
+  const externalId = it.playlistId || it.albumId
+  ctx.contextMenu.show(e.clientX, e.clientY, [
+    {
+      label: isPlaylist ? 'Reproducir playlist' : 'Reproducir album',
+      action: async () => {
+        const res = isPlaylist
+          ? await ctx.aero.spotifyGetAllPlaylistTracks(externalId)
+          : await ctx.aero.spotifyGetAlbumTracks(externalId)
+        if (res.ok && res.items.length) {
+          ctx.player.playItem(res.items[0], { list: res.items, index: 0 })
+        }
+      },
+    },
+    {
+      label: 'Agregar a la cola',
+      action: async () => {
+        const res = isPlaylist
+          ? await ctx.aero.spotifyGetAllPlaylistTracks(externalId)
+          : await ctx.aero.spotifyGetAlbumTracks(externalId)
+        if (res.ok && res.items.length) {
+          res.items.forEach((t) => ctx.queue.add(t, { silent: true }))
+          ctx.toast(`${res.items.length} canciones agregadas a la cola`, { platform: 'spotify' })
+        }
+      },
+    },
+    { sep: true },
+    buildSpImportSubmenu({ externalId, title: it.title, coverUrl: it.coverUrl }, isPlaylist ? 'spotify' : 'spotify-album'),
+  ])
+}
+
+function buildSpImportSubmenu(pl, sourceTag) {
+  const mine = ctx.playlists?.getAll() || []
+  const fetcher = async () => {
+    if (sourceTag === 'spotify') return await ctx.aero.spotifyGetAllPlaylistTracks(pl.externalId)
+    return await ctx.aero.spotifyGetAlbumTracks(pl.externalId)
+  }
+  const importTo = async (targetId) => {
+    const progress = ctx.toast(`Importando "${pl.title}"...`, { duration: 60000, progress: true, platform: 'spotify' })
+    const res = await fetcher()
+    if (progress && progress.remove) progress.remove()
+    if (!res.ok || !res.items.length) {
+      ctx.toast(`No se pudieron importar canciones de "${pl.title}".`, { platform: 'spotify' })
+      return
+    }
+    if (targetId) {
+      const r = await ctx.aero.playlistsAddBulk(targetId, res.items)
+      await ctx.playlists.load()
+      const target = ctx.playlists.findById(targetId)
+      ctx.toast(`Importadas ${r.added} en "${target?.name || ''}"`, { platform: 'spotify' })
+    } else {
+      ctx.playlists.showCreateModal({
+        prefillName: pl.title,
+        prefillCover: pl.coverUrl || null,
+        onCreated: async (newPl) => {
+          const r = await ctx.aero.playlistsAddBulk(newPl.id, res.items)
+          await ctx.playlists.load()
+          ctx.toast(`Importadas ${r.added} canciones`, { platform: 'spotify' })
+        },
+      })
+    }
+  }
+  const sub = mine.map((p) => ({
+    label: p.name,
+    thumb: p.coverBase64 || p.coverPath || null,
+    action: () => importTo(p.id),
+  }))
+  if (mine.length) sub.push({ sep: true })
+  sub.push({ label: 'Crear nueva playlist...', action: () => importTo(null) })
+  return { label: 'Importar a Mis playlists', submenu: sub }
+}
+
+// Busqueda en Spotify usada por la barra de busqueda global.
+export async function searchSpotify(query) {
+  const res = await ctx.aero.spotifySearchTracks(query)
+  return res
 }
 
 function renderCollectionList(items, title, onOpen) {
@@ -285,6 +367,10 @@ function renderCollectionList(items, title, onOpen) {
       <span class="tr-platform">${spIcon(14)}</span>
     `
     row.addEventListener('click', () => onOpen(it))
+    row.addEventListener('contextmenu', (e) => {
+      e.preventDefault()
+      showSpCollectionContextMenu(e, it)
+    })
     frag.appendChild(row)
   })
   ctx.els.listViewBody.innerHTML = ''

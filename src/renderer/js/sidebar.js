@@ -10,6 +10,16 @@ export function initSidebar(ctx) {
     item.addEventListener('click', () => {
       setActive(item)
       ctx.library.renderView(item.dataset.local)
+      document.getElementById('my-playlists').hidden = true
+      document.getElementById('my-playlists-empty').hidden = true
+    })
+  })
+
+  // --- Mis playlists ---
+  document.querySelectorAll('.src-item[data-section="playlists"]').forEach((item) => {
+    item.addEventListener('click', () => {
+      setActive(item)
+      if (ctx.playlists) ctx.playlists.showMyPlaylistsInSidebar()
     })
   })
 

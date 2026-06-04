@@ -157,11 +157,44 @@ async function getAlbumTracks(albumId) {
   return { ok: true, items }
 }
 
+// ---- Busqueda de tracks ----
+async function searchTracks(query, limit = 10) {
+  if (!query) return { ok: true, items: [] }
+  const r = await apiGet(`/search?type=track&limit=${limit}&q=${encodeURIComponent(query)}`)
+  if (!r.ok) return r
+  const items = (r.data.tracks?.items || []).map(mapTrack).filter(Boolean)
+  return { ok: true, items }
+}
+
+// ---- Paginacion completa de tracks de una playlist ----
+async function getAllPlaylistTracks(playlistId) {
+  let url = `/playlists/${playlistId}/tracks?limit=100`
+  const collected = []
+  while (url) {
+    const r = await apiGet(url)
+    if (!r.ok) return { ok: false, error: r.error, items: collected }
+    ;(r.data.items || []).forEach((i) => {
+      const t = mapTrack(i.track)
+      if (t) collected.push(t)
+    })
+    // El "next" viene como URL completa; lo recortamos.
+    if (r.data.next) {
+      const next = new URL(r.data.next)
+      url = next.pathname.replace('/v1', '') + next.search
+    } else {
+      url = null
+    }
+  }
+  return { ok: true, items: collected }
+}
+
 module.exports = {
   getValidToken,
   getSavedTracks,
   getPlaylists,
   getSavedAlbums,
   getPlaylistTracks,
+  getAllPlaylistTracks,
   getAlbumTracks,
+  searchTracks,
 }

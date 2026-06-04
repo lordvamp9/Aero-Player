@@ -32,7 +32,24 @@ contextBridge.exposeInMainWorld('aero', {
   spotifyGetPlaylists: () => ipcRenderer.invoke('spotify-get-playlists'),
   spotifyGetSavedAlbums: () => ipcRenderer.invoke('spotify-get-saved-albums'),
   spotifyGetPlaylistTracks: (id) => ipcRenderer.invoke('spotify-get-playlist-tracks', id),
+  spotifyGetAllPlaylistTracks: (id) => ipcRenderer.invoke('spotify-get-all-playlist-tracks', id),
   spotifyGetAlbumTracks: (id) => ipcRenderer.invoke('spotify-get-album-tracks', id),
+  spotifySearchTracks: (q) => ipcRenderer.invoke('spotify-search-tracks', q),
+
+  // YouTube paginacion completa para importar playlists
+  youtubeGetAllPlaylistItems: (id) => ipcRenderer.invoke('youtube-get-all-playlist-items', id),
+
+  // Playlists propias
+  playlistsGetAll: () => ipcRenderer.invoke('playlists-get-all'),
+  playlistsCreate: (data) => ipcRenderer.invoke('playlists-create', data),
+  playlistsUpdate: (id, data) => ipcRenderer.invoke('playlists-update', id, data),
+  playlistsDelete: (id) => ipcRenderer.invoke('playlists-delete', id),
+  playlistsAddTrack: (id, track) => ipcRenderer.invoke('playlists-add-track', id, track),
+  playlistsAddBulk: (id, tracks) => ipcRenderer.invoke('playlists-add-bulk', id, tracks),
+  playlistsRemoveTrack: (id, trackId) => ipcRenderer.invoke('playlists-remove-track', id, trackId),
+  playlistsReorder: (id, from, to) => ipcRenderer.invoke('playlists-reorder', id, from, to),
+  playlistsMoveEdge: (id, trackId, edge) => ipcRenderer.invoke('playlists-move-edge', id, trackId, edge),
+  openImageDialog: () => ipcRenderer.invoke('open-image-dialog'),
 
   // Persistencia (electron-store)
   storeGet: (key) => ipcRenderer.invoke('store-get', key),
