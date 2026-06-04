@@ -5,6 +5,8 @@
    las credenciales configuradas en el archivo .env.
    ===================================================================== */
 
+import { escapeHtml, spIcon } from './app.js'
+
 let ctx
 let sdkPlayer = null
 let deviceId = null
@@ -84,7 +86,10 @@ function initWebPlaybackSdk() {
 function createSdkPlayer() {
   sdkPlayer = new window.Spotify.Player({
     name: 'Aero Player',
-    getOAuthToken: (cb) => cb(accessToken),
+    // Pide siempre un token vigente al proceso principal (se refresca solo).
+    getOAuthToken: (cb) => {
+      ctx.aero.spotifyGetToken().then((t) => cb(t || accessToken)).catch(() => cb(accessToken))
+    },
     volume: ctx.state.volume || 0.8,
   })
 
@@ -117,8 +122,8 @@ function createSdkPlayer() {
 // Control de reproduccion (via Web API sobre el dispositivo del SDK)
 // ---------------------------------------------------------------------
 async function play(uri) {
-  if (!accessToken || !deviceId) {
-    ctx.toast('Conecta Spotify Premium para reproducir.', { platform: 'spotify' })
+  if (!deviceId) {
+    ctx.toast('El reproductor de Spotify aun no esta listo. Requiere cuenta Premium.', { platform: 'spotify' })
     return
   }
   await apiPut(`/me/player/play?device_id=${deviceId}`, { uris: [uri] })
@@ -146,9 +151,10 @@ function setMuted(m) {
 
 async function apiPut(path, body) {
   try {
+    const token = (await ctx.aero.spotifyGetToken()) || accessToken
     await fetch('https://api.spotify.com/v1' + path, {
       method: 'PUT',
-      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
   } catch (err) {
@@ -156,15 +162,131 @@ async function apiPut(path, body) {
   }
 }
 
-function loadSection(which) {
+// ---------------------------------------------------------------------
+// Carga de contenido real via Spotify Web API
+// ---------------------------------------------------------------------
+async function loadSection(which) {
   if (!ctx.state.auth.spotify.connected) {
     ctx.toast('Conecta tu cuenta de Spotify para ver tu biblioteca.', { platform: 'spotify' })
     return
   }
-  const labels = {
-    saved: 'Canciones guardadas',
-    playlists: 'Mis playlists',
-    albums: 'Albumes guardados',
+
+  if (which === 'saved') {
+    showLoading('Canciones guardadas')
+    const res = await ctx.aero.spotifyGetSavedTracks()
+    if (!res.ok) return showError(res.error)
+    renderTrackList(res.items, 'Canciones guardadas')
+  } else if (which === 'playlists') {
+    showLoading('Mis playlists')
+    const res = await ctx.aero.spotifyGetPlaylists()
+    if (!res.ok) return showError(res.error)
+    renderCollectionList(res.items, 'Mis playlists', openPlaylist)
+  } else if (which === 'albums') {
+    showLoading('Albumes guardados')
+    const res = await ctx.aero.spotifyGetSavedAlbums()
+    if (!res.ok) return showError(res.error)
+    renderCollectionList(res.items, 'Albumes guardados', openAlbum)
   }
-  ctx.toast(`Spotify · ${labels[which] || which}`, { platform: 'spotify' })
+}
+
+async function openPlaylist(pl) {
+  showLoading(pl.title)
+  const res = await ctx.aero.spotifyGetPlaylistTracks(pl.playlistId)
+  if (!res.ok) return showError(res.error)
+  renderTrackList(res.items, pl.title)
+}
+
+async function openAlbum(al) {
+  showLoading(al.title)
+  const res = await ctx.aero.spotifyGetAlbumTracks(al.albumId)
+  if (!res.ok) return showError(res.error)
+  renderTrackList(res.items, al.title)
+}
+
+function playSp(item, list, index) {
+  ctx.player.playItem(item, { list: list || [item], index: index || 0 })
+}
+
+// ---------------------------------------------------------------------
+// Renderizado en la vista de listas
+// ---------------------------------------------------------------------
+function showLoading(title) {
+  ctx.els.listViewTitle.textContent = title
+  ctx.els.listViewCount.textContent = ''
+  ctx.els.listViewBody.innerHTML = '<div class="list-empty">Cargando...</div>'
+  ctx.els.listView.hidden = false
+  ctx.els.nowPlaying.style.opacity = '0.15'
+}
+
+function showError(msg) {
+  ctx.els.listViewBody.innerHTML = `<div class="list-empty">No se pudo cargar el contenido de Spotify.<br><small style="opacity:.6">${escapeHtml(
+    msg || ''
+  )}</small></div>`
+}
+
+function renderTrackList(items, title) {
+  ctx.els.listViewTitle.textContent = title
+  ctx.els.listViewCount.textContent = items.length
+    ? `${items.length} ${items.length === 1 ? 'cancion' : 'canciones'}`
+    : ''
+  if (!items.length) {
+    ctx.els.listViewBody.innerHTML = '<div class="list-empty">No hay canciones en esta seccion.</div>'
+    return
+  }
+  const frag = document.createDocumentFragment()
+  items.forEach((item, i) => {
+    const row = document.createElement('div')
+    row.className = 'track-row'
+    if (item.id === ctx.state.currentId) row.classList.add('active')
+    const cover = item.coverUrl ? `background-image:url('${item.coverUrl}')` : ''
+    row.innerHTML = `
+      <span class="tr-index">${i + 1}</span>
+      <span class="tr-cover" style="${cover}">${item.coverUrl ? '' : spIcon(16)}</span>
+      <span class="tr-main">
+        <span class="tr-title">${escapeHtml(item.title)}</span>
+        <span class="tr-sub">${escapeHtml(item.artist)}</span>
+      </span>
+      <span class="tr-album">${escapeHtml(item.album || '')}</span>
+      <span class="tr-platform">${spIcon(14)}</span>
+      <span class="tr-dur">${item.durationFormatted || ''}</span>
+    `
+    row.addEventListener('click', () => playSp(item, items, i))
+    row.addEventListener('contextmenu', (e) => {
+      e.preventDefault()
+      ctx.contextMenu.show(e.clientX, e.clientY, [
+        { label: 'Reproducir ahora', action: () => playSp(item, items, i) },
+        { label: 'Agregar a la cola', action: () => ctx.queue.add({ ...item }) },
+      ])
+    })
+    frag.appendChild(row)
+  })
+  ctx.els.listViewBody.innerHTML = ''
+  ctx.els.listViewBody.appendChild(frag)
+}
+
+function renderCollectionList(items, title, onOpen) {
+  ctx.els.listViewTitle.textContent = title
+  ctx.els.listViewCount.textContent = items.length ? `${items.length}` : ''
+  if (!items.length) {
+    ctx.els.listViewBody.innerHTML = '<div class="list-empty">No hay elementos en esta seccion.</div>'
+    return
+  }
+  const frag = document.createDocumentFragment()
+  items.forEach((it) => {
+    const row = document.createElement('div')
+    row.className = 'track-row'
+    const cover = it.coverUrl ? `background-image:url('${it.coverUrl}')` : ''
+    row.innerHTML = `
+      <span class="tr-cover" style="${cover}">${it.coverUrl ? '' : spIcon(16)}</span>
+      <span class="tr-main">
+        <span class="tr-title">${escapeHtml(it.title)}</span>
+        <span class="tr-sub">${escapeHtml(it.owner || '')}${it.count ? ' · ' + it.count + ' pistas' : ''}</span>
+      </span>
+      <span class="tr-platform">${spIcon(14)}</span>
+    `
+    row.addEventListener('click', () => onOpen(it))
+    frag.appendChild(row)
+  })
+  ctx.els.listViewBody.innerHTML = ''
+  ctx.els.listViewBody.appendChild(frag)
 }

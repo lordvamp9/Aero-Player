@@ -9,6 +9,7 @@ const { store } = require('./store')
 const { startGoogleAuth, logoutGoogle, getGoogleStatus } = require('./auth/google-auth')
 const { startSpotifyAuth, logoutSpotify, getSpotifyStatus } = require('./auth/spotify-auth')
 const { getLikedVideos, getMyPlaylists, getPlaylistItems, searchMusic } = require('./youtube-api')
+const spotifyApi = require('./spotify-api')
 
 let registered = false
 
@@ -70,6 +71,14 @@ function registerIpcHandlers(mainWindow) {
   ipcMain.handle('youtube-get-playlists', async () => getMyPlaylists())
   ipcMain.handle('youtube-get-playlist-items', async (_e, playlistId) => getPlaylistItems(playlistId))
   ipcMain.handle('youtube-search-music', async (_e, query) => searchMusic(query))
+
+  // ---- Spotify Web API ----
+  ipcMain.handle('spotify-get-token', async () => spotifyApi.getValidToken())
+  ipcMain.handle('spotify-get-saved-tracks', async () => spotifyApi.getSavedTracks())
+  ipcMain.handle('spotify-get-playlists', async () => spotifyApi.getPlaylists())
+  ipcMain.handle('spotify-get-saved-albums', async () => spotifyApi.getSavedAlbums())
+  ipcMain.handle('spotify-get-playlist-tracks', async (_e, id) => spotifyApi.getPlaylistTracks(id))
+  ipcMain.handle('spotify-get-album-tracks', async (_e, id) => spotifyApi.getAlbumTracks(id))
 
   // ---- Persistencia ----
   ipcMain.handle('store-get', async (_e, key) => store.get(key))

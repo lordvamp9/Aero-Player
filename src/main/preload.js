@@ -26,6 +26,14 @@ contextBridge.exposeInMainWorld('aero', {
   youtubeGetPlaylistItems: (id) => ipcRenderer.invoke('youtube-get-playlist-items', id),
   youtubeSearchMusic: (q) => ipcRenderer.invoke('youtube-search-music', q),
 
+  // Spotify Web API
+  spotifyGetToken: () => ipcRenderer.invoke('spotify-get-token'),
+  spotifyGetSavedTracks: () => ipcRenderer.invoke('spotify-get-saved-tracks'),
+  spotifyGetPlaylists: () => ipcRenderer.invoke('spotify-get-playlists'),
+  spotifyGetSavedAlbums: () => ipcRenderer.invoke('spotify-get-saved-albums'),
+  spotifyGetPlaylistTracks: (id) => ipcRenderer.invoke('spotify-get-playlist-tracks', id),
+  spotifyGetAlbumTracks: (id) => ipcRenderer.invoke('spotify-get-album-tracks', id),
+
   // Persistencia (electron-store)
   storeGet: (key) => ipcRenderer.invoke('store-get', key),
   storeSet: (key, value) => ipcRenderer.invoke('store-set', key, value),
