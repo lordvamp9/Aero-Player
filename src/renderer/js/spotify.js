@@ -11,6 +11,9 @@ let ctx
 let sdkPlayer = null
 let deviceId = null
 let accessToken = null
+let isPremium = true // se descarta a false solo si Spotify responde account_error
+let readyPromise = null // se resuelve cuando el SDK queda registrado
+let readyResolver = null
 let lastState = { position: 0, duration: 0, paused: true, ts: Date.now() }
 
 export function initSpotify(context) {
@@ -29,6 +32,25 @@ export function initSpotify(context) {
     setMuted,
     isPlaying: () => (lastState ? !lastState.paused : null),
   }
+
+  // Si hay una sesion guardada en el store, restaura el SDK al arranque
+  // (sin esto, deviceId queda null y play() fallaba con el aviso falso).
+  restoreSessionIfAny()
+}
+
+async function restoreSessionIfAny() {
+  try {
+    const status = await ctx.aero.getAuthStatus()
+    if (status?.spotify?.connected) {
+      const token = await ctx.aero.spotifyGetToken()
+      if (token) {
+        accessToken = token
+        initWebPlaybackSdk()
+      }
+    }
+  } catch {
+    /* sin sesion previa */
+  }
 }
 
 // ---------------------------------------------------------------------
@@ -39,6 +61,7 @@ async function connect() {
   const res = await ctx.aero.spotifyAuthStart()
   if (res.connected) {
     accessToken = res.accessToken || null
+    isPremium = true
     ctx.state.auth.spotify = { connected: true, userName: res.userName }
     ctx.emit('spotify-auth', ctx.state.auth.spotify)
     ctx.toast(`Conectado a Spotify como ${res.userName}`, { platform: 'spotify' })
@@ -69,6 +92,11 @@ async function logout() {
 // ---------------------------------------------------------------------
 function initWebPlaybackSdk() {
   if (sdkPlayer) return
+  // Promesa que play() puede await-ear hasta tener deviceId.
+  readyPromise = new Promise((resolve) => {
+    readyResolver = resolve
+  })
+
   const boot = () => createSdkPlayer()
   if (window.Spotify && window.Spotify.Player) {
     boot()
@@ -95,6 +123,13 @@ function createSdkPlayer() {
 
   sdkPlayer.addListener('ready', ({ device_id }) => {
     deviceId = device_id
+    if (readyResolver) {
+      readyResolver(true)
+      readyResolver = null
+    }
+  })
+  sdkPlayer.addListener('not_ready', () => {
+    deviceId = null
   })
   sdkPlayer.addListener('player_state_changed', (s) => {
     if (!s) return
@@ -110,11 +145,19 @@ function createSdkPlayer() {
       ctx.emit('external-ended')
     }
   })
-  sdkPlayer.addListener('initialization_error', ({ message }) => ctx.toast('Spotify: ' + message, { platform: 'spotify' }))
-  sdkPlayer.addListener('authentication_error', () => ctx.toast('Spotify: error de autenticacion.', { platform: 'spotify' }))
-  sdkPlayer.addListener('account_error', () =>
+  sdkPlayer.addListener('initialization_error', ({ message }) => {
+    ctx.toast('Spotify: ' + message, { platform: 'spotify' })
+    if (readyResolver) { readyResolver(false); readyResolver = null }
+  })
+  sdkPlayer.addListener('authentication_error', () => {
+    ctx.toast('Spotify: error de autenticacion. Vuelve a conectar.', { platform: 'spotify' })
+    if (readyResolver) { readyResolver(false); readyResolver = null }
+  })
+  sdkPlayer.addListener('account_error', () => {
+    isPremium = false
     ctx.toast('Spotify: la reproduccion requiere una cuenta Premium.', { platform: 'spotify' })
-  )
+    if (readyResolver) { readyResolver(false); readyResolver = null }
+  })
   sdkPlayer.connect()
 }
 
@@ -122,9 +165,32 @@ function createSdkPlayer() {
 // Control de reproduccion (via Web API sobre el dispositivo del SDK)
 // ---------------------------------------------------------------------
 async function play(uri) {
-  if (!deviceId) {
-    ctx.toast('El reproductor de Spotify aun no esta listo. Requiere cuenta Premium.', { platform: 'spotify' })
+  // Si no hay sesion, no podemos hacer nada.
+  if (!ctx.state.auth.spotify.connected) {
+    ctx.toast('Conecta tu cuenta de Spotify para reproducir.', { platform: 'spotify' })
     return
+  }
+  // Si la cuenta ya respondio que no es Premium, no insistas.
+  if (!isPremium) {
+    ctx.toast('La reproduccion de Spotify requiere cuenta Premium.', { platform: 'spotify' })
+    return
+  }
+  // Si el SDK aun no esta inicializado (puede pasar al primer arranque),
+  // dispara la inicializacion ahora mismo.
+  if (!sdkPlayer) {
+    accessToken = (await ctx.aero.spotifyGetToken()) || accessToken
+    if (accessToken) initWebPlaybackSdk()
+  }
+  // Espera hasta 10 segundos a que el SDK registre su deviceId.
+  if (!deviceId) {
+    const ready = await Promise.race([
+      readyPromise || Promise.resolve(false),
+      new Promise((r) => setTimeout(() => r(false), 10000)),
+    ])
+    if (!ready || !deviceId) {
+      ctx.toast('El reproductor de Spotify no respondio. Intenta de nuevo en unos segundos.', { platform: 'spotify' })
+      return
+    }
   }
   await apiPut(`/me/player/play?device_id=${deviceId}`, { uris: [uri] })
 }
