@@ -1,10 +1,42 @@
+# --- Credenciales y secretos (NUNCA commitear) ---
 .env
+.env.local
+.env.*.local
+*.tokens.json
+auth-cache/
+*.cookies
+secrets/
+
+# --- Node / Build ---
 node_modules/
 dist/
 dist-electron/
 release/
 *.log
-*.exe
 *.blockmap
+
+# --- Tauri / Rust ---
+src-tauri/target/
+src-tauri/gen/schemas/
+src-tauri/WixTools/
+
+# --- Empaquetado e installer ---
+*.exe
+*.msi
+*.AppImage
+*.dmg
+*.deb
+
+# --- Sistema ---
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# --- Editor / IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- Claude Code cache ---
+.claude/

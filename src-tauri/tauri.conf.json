@@ -1,0 +1,39 @@
+{
+  "productName": "Aero Player",
+  "version": "1.0.0",
+  "identifier": "com.aero.player",
+  "build": {
+    "beforeDevCommand": "npm run vite",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Aero Player",
+        "width": 1024,
+        "height": 720,
+        "minWidth": 800,
+        "minHeight": 600,
+        "decorations": false,
+        "transparent": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; media-src 'self' blob: https:; connect-src 'self' https: wss:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["msi", "nsis"],
+    "icon": ["../build/icon.ico"],
+    "windows": {
+      "nsis": {
+        "installerIcon": "../build/icon.ico",
+        "headerImage": "../build/icon.ico"
+      }
+    }
+  }
+}

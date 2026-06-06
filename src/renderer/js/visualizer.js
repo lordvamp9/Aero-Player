@@ -26,6 +26,7 @@ let particles = [] // liquid: motas ascendentes
 let bigOrbs = []   // liquid + waveform: orbes grandes flotantes
 let orbiters = [] // orbital
 let peaks = [] // spectrum: caida de picos
+let specSmooth = [] // spectrum: alturas suavizadas (estabilidad anti-parpadeo)
 const BIN_COUNT = 1024
 
 // --- Detector de beat ---------------------------------------------------
@@ -47,12 +48,23 @@ export function initVisualizer(context) {
 
   resize()
   window.addEventListener('resize', resize)
+  // Pausa el render cuando la ventana esta oculta o minimizada: cero gasto de
+  // CPU/GPU en segundo plano. Al volver, retoma solo si correspondia animar.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null }
+    } else {
+      ensureLoop()
+    }
+  })
   initParticles()
   initBigOrbs()
   initOrbiters()
   peaks = new Array(96).fill(0)
+  specSmooth = new Array(96).fill(0)
 
   wireSelector()
+  wireFullscreen()
 
   ctx.visualizer = {
     start,
@@ -78,6 +90,59 @@ function wireSelector() {
   })
 }
 
+// ---------------------------------------------------------------------
+// Modo pantalla completa (visualizador inmersivo)
+// ---------------------------------------------------------------------
+let immersive = false
+function wireFullscreen() {
+  const btn = document.getElementById('btn-viz-fullscreen')
+  if (btn) btn.addEventListener('click', toggleFullscreen)
+  // Salir con Escape.
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && immersive) exitFullscreen()
+  })
+  // Si el usuario sale del fullscreen nativo (F11, gesto), sincroniza la UI.
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement && immersive) exitFullscreen()
+  })
+}
+
+function toggleFullscreen() {
+  if (immersive) exitFullscreen()
+  else enterFullscreen()
+}
+
+function enterFullscreen() {
+  immersive = true
+  const btn = document.getElementById('btn-viz-fullscreen')
+  if (btn) btn.classList.add('active')
+  const stage = document.querySelector('.stage')
+  const afterResize = () => requestAnimationFrame(resize)
+  // Via principal: fullscreen nativo del escenario (solo .stage y sus hijos se
+  // dibujan; el resto del chrome desaparece solo). Si falla, caemos al modo
+  // inmersivo por CSS.
+  if (stage && stage.requestFullscreen) {
+    stage.requestFullscreen().then(afterResize).catch(() => {
+      document.body.classList.add('viz-immersive')
+      afterResize()
+    })
+  } else {
+    document.body.classList.add('viz-immersive')
+    afterResize()
+  }
+}
+
+function exitFullscreen() {
+  immersive = false
+  const btn = document.getElementById('btn-viz-fullscreen')
+  if (btn) btn.classList.remove('active')
+  document.body.classList.remove('viz-immersive')
+  try {
+    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {})
+  } catch {}
+  requestAnimationFrame(resize)
+}
+
 function setMode(next) {
   if (next === mode) return
   mode = next
@@ -93,20 +158,37 @@ function highlightSelector() {
   })
 }
 
+let wantRunning = false
+let frameSkip = 0
+
 function start() {
-  if (rafId) return
-  const loop = () => {
-    t += 1
-    if (fade < 1) fade = Math.min(1, fade + 0.05)
-    draw()
-    rafId = requestAnimationFrame(loop)
-  }
-  rafId = requestAnimationFrame(loop)
+  wantRunning = true
+  ensureLoop()
 }
 
 function stop() {
+  wantRunning = false
   if (rafId) cancelAnimationFrame(rafId)
   rafId = null
+}
+
+// Arranca el bucle solo si corresponde: respeta la intencion (wantRunning) y
+// jamas anima con la ventana oculta. En reposo (sin audio real) baja a ~30fps
+// porque el modo demo no necesita 60fps; con musica sonando va a full.
+function ensureLoop() {
+  if (rafId || !wantRunning || document.hidden) return
+  const loop = () => {
+    rafId = requestAnimationFrame(loop)
+    const playing = ctx.state && ctx.state.isPlaying
+    if (!playing) {
+      frameSkip ^= 1
+      if (frameSkip) return
+    }
+    t += 1
+    if (fade < 1) fade = Math.min(1, fade + 0.05)
+    draw()
+  }
+  rafId = requestAnimationFrame(loop)
 }
 
 // ---------------------------------------------------------------------
@@ -455,13 +537,26 @@ function drawSpectrum() {
   g.lineTo(width, mid + 0.5)
   g.stroke()
 
+  // Un solo gradiente vertical para TODAS las barras (antes se creaba uno por
+  // barra: ~96 objetos de gradiente por frame). Las barras mas altas alcanzan
+  // los tonos claros de la punta; no hay cambio visual perceptible.
+  const barGrad = g.createLinearGradient(0, mid, 0, mid - headroom)
+  barGrad.addColorStop(0, 'rgba(18, 52, 155, 0.95)')
+  barGrad.addColorStop(0.5, 'rgba(50, 120, 240, 0.96)')
+  barGrad.addColorStop(0.85, 'rgba(120, 195, 255, 1)')
+  barGrad.addColorStop(1, 'rgba(200, 232, 255, 1)')
+
   for (let i = 0; i < bars; i++) {
     let v = 0
     for (let j = 0; j < step; j++) v += freq[i * step + j]
     v = v / step / 255 // 0..1
     v = Math.pow(v, 1.05) // curva mas dramatica que antes
     // Boost adicional con el beat para que se "abran" en cada golpe
-    const h = Math.min(headroom, v * headroom * (1.05 + kick * 0.55 + energy * 0.25))
+    let h = Math.min(headroom, v * headroom * (1.05 + kick * 0.55 + energy * 0.25))
+    // Suavizado: ataque rapido (0.5) y caida lenta (0.16). Elimina el parpadeo
+    // nervioso de las barras y las hace mucho mas estables y agradables.
+    specSmooth[i] += (h - specSmooth[i]) * (h > specSmooth[i] ? 0.5 : 0.16)
+    h = specSmooth[i]
     const x = i * (barW + gap)
     const top = mid - h
 
@@ -469,13 +564,8 @@ function drawSpectrum() {
     if (h > peaks[i]) peaks[i] = h
     else peaks[i] = Math.max(0, peaks[i] - 1.8)
 
-    // Barra principal con gradiente vertical mas vibrante
-    const grad = g.createLinearGradient(0, mid, 0, top)
-    grad.addColorStop(0, 'rgba(18, 52, 155, 0.95)')
-    grad.addColorStop(0.5, 'rgba(50, 120, 240, 0.96)')
-    grad.addColorStop(0.85, 'rgba(120, 195, 255, 1)')
-    grad.addColorStop(1, 'rgba(200, 232, 255, 1)')
-    g.fillStyle = grad
+    // Barra principal: reutiliza el gradiente compartido (ver arriba).
+    g.fillStyle = barGrad
     if (h > headroom * 0.5) {
       g.shadowColor = 'rgba(110, 190, 255, 0.85)'
       g.shadowBlur = 16 + kick * 12

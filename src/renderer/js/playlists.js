@@ -1,7 +1,7 @@
 /* =====================================================================
    AERO PLAYER  ·  playlists.js
    Sistema completo de playlists propias del usuario.
-   - Carga/persistencia en electron-store via IPC
+   - Carga/persistencia en plugin-store de Tauri via window.aero
    - Render del listado en el sidebar (Mis playlists)
    - Vista de contenido (header + lista con drag and drop)
    - Modal glass de creacion / edicion de portada

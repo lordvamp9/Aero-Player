@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self' aeromedia: data: blob: https://www.youtube.com https://*.ytimg.com https://i.scdn.co https://*.spotifycdn.com; img-src 'self' data: blob: https: aeromedia:; media-src 'self' aeromedia: blob: data: https:; script-src 'self' 'unsafe-inline' https://www.youtube.com https://s.ytimg.com https://sdk.scdn.co; style-src 'self' 'unsafe-inline'; frame-src https://www.youtube.com https://sdk.scdn.co https://accounts.spotify.com; connect-src 'self' https: wss:;"
+      content="default-src 'self' aeromedia: http://asset.localhost https://asset.localhost data: blob: https://www.youtube.com https://*.ytimg.com https://i.scdn.co https://*.spotifycdn.com; img-src 'self' data: blob: https: aeromedia: http://asset.localhost https://asset.localhost; media-src 'self' aeromedia: http://asset.localhost https://asset.localhost blob: data: https:; script-src 'self' 'unsafe-inline' https://www.youtube.com https://s.ytimg.com https://sdk.scdn.co; style-src 'self' 'unsafe-inline'; frame-src https://www.youtube.com https://sdk.scdn.co https://accounts.spotify.com; connect-src 'self' ipc: http://ipc.localhost http://asset.localhost https://asset.localhost https: wss:;"
     />
     <title>Aero Player</title>
     <link rel="stylesheet" href="./styles/main.css" />
@@ -19,8 +19,8 @@
   <body>
     <div class="app-window" id="app-window">
       <!-- ===================== BARRA DE TITULO ===================== -->
-      <header class="titlebar">
-        <div class="titlebar-shine"></div>
+      <header class="titlebar" data-tauri-drag-region>
+        <div class="titlebar-shine" data-tauri-drag-region></div>
         <div class="titlebar-left">
           <div class="app-glyph" aria-hidden="true">
             <svg viewBox="0 0 32 32" width="18" height="18">
@@ -36,7 +36,7 @@
               <circle cx="16" cy="16" r="1.4" fill="#bfe0ff" />
             </svg>
           </div>
-          <span class="app-title">Aero Player&nbsp;&nbsp;&#x22C6;&#x10659;&#x208A;&#x02DA;&#x2639;&#x2661;</span>
+          <span class="app-title">Aero Player&nbsp;&nbsp;&#x22C6;&#x2727;&#x22C6;</span>
         </div>
 
         <div class="titlebar-right">
@@ -256,6 +256,13 @@
                 <circle cx="12" cy="12" r="2.2" fill="currentColor" />
               </svg>
             </button>
+            <span class="viz-sep" aria-hidden="true"></span>
+            <button class="viz-mode viz-fullscreen-btn" id="btn-viz-fullscreen" title="Pantalla completa (Esc para salir)">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"
+                  d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4" />
+              </svg>
+            </button>
           </div>
         </main>
       </div>
@@ -458,6 +465,8 @@
     <div id="yt-player-host" class="yt-host"></div>
     <audio id="audio-element" crossorigin="anonymous"></audio>
 
+    <!-- Puente window.aero para Tauri (WebView2). En Electron no hace nada. -->
+    <script type="module" src="./js/aero-tauri.js"></script>
     <script type="module" src="./js/app.js"></script>
   </body>
 </html>

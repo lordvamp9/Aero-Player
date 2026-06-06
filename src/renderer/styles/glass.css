@@ -330,6 +330,9 @@
   z-index: 1000;
   transform-origin: top left;
   animation: contextIn 0.14s cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* Anula el overflow:hidden de .glass-panel: el submenu se dibuja saliendo
+     hacia la derecha (left:100%) y debe poder mostrarse fuera del menu. */
+  overflow: visible;
 }
 
 .ctx-item {

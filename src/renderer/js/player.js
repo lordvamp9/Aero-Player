@@ -58,6 +58,7 @@ export function initPlayer(context) {
     getFrequencyData,
     getTimeDomainData,
     getCurrent,
+    getPlaybackTimes,
     isLocalActive: () => getCurrent()?.source === 'local' && ctx.state.isPlaying,
   }
 
@@ -215,6 +216,11 @@ function getTimeDomainData() {
 // ---------------------------------------------------------------------
 async function ensureLoopbackAnalyser() {
   if (loopbackAnalyser || loopbackRequested) return
+  // En Tauri (WebView2) no existe el handler de loopback del proceso principal
+  // de Electron, asi que getDisplayMedia abriria el selector de pantalla nativo
+  // del sistema. Lo omitimos: el visualizador usa su modo sintetico para las
+  // fuentes externas (Spotify / YouTube), sin molestar al usuario con un popup.
+  if (window.__TAURI_INTERNALS__) { loopbackRequested = true; return }
   loopbackRequested = true
   try {
     // El main process aprueba esta peticion con audio: 'loopback'.

@@ -264,3 +264,61 @@ ul {
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, rgba(70, 130, 235, 0.7), rgba(40, 90, 200, 0.75));
 }
+
+/* =====================================================================
+   MODO PANTALLA COMPLETA DEL VISUALIZADOR (inmersivo)
+   Oculta todo el chrome y deja el escenario ocupando la ventana entera.
+   ===================================================================== */
+/* Via principal: fullscreen NATIVO sobre el escenario. El navegador dibuja
+   solo .stage y sus hijos (canvas + portada/titulo + selector), asi el sidebar,
+   la barra de titulo y la de reproduccion desaparecen solas. Limpio el borde
+   redondeado y dejo solo la cancion + el espectro. */
+.stage:fullscreen {
+  border-radius: 0;
+  background: #030712;
+}
+.stage:fullscreen .list-view {
+  display: none !important;
+}
+.stage:fullscreen .now-playing {
+  opacity: 1 !important;
+}
+.stage:fullscreen .now-playing::after {
+  content: 'Esc para salir';
+  position: fixed;
+  bottom: 18px;
+  left: 22px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: rgba(150, 195, 255, 0.4);
+  pointer-events: none;
+}
+
+/* Fallback por CSS si el fullscreen nativo no estuviera disponible. */
+body.viz-immersive .titlebar,
+body.viz-immersive .sidebar,
+body.viz-immersive .player-bar,
+body.viz-immersive .statusbar,
+body.viz-immersive .list-view {
+  display: none !important;
+}
+body.viz-immersive .stage {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  border-radius: 0;
+}
+body.viz-immersive .now-playing {
+  opacity: 1 !important;
+}
+
+/* Separador y boton de pantalla completa en el selector de visualizador */
+.viz-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 2px;
+  background: linear-gradient(180deg, transparent, rgba(120, 175, 255, 0.25), transparent);
+}
+.viz-fullscreen-btn.active {
+  color: rgba(120, 195, 255, 1);
+}

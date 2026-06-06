@@ -15,9 +15,11 @@ import { initDragDrop } from './drag-drop.js'
 import { initPlaylists } from './playlists.js'
 import { initSettings } from './settings.js'
 import { initProfile } from './profile.js'
+import { initDiscord } from './discord.js'
 
-// El puente seguro expuesto desde preload.js. Si no existe (por ejemplo al
-// abrir el HTML fuera de Electron) se usa un stub para no romper la UI.
+// El puente seguro expuesto desde aero-tauri.js (plugins de Tauri). Si no
+// existe (por ejemplo al abrir el HTML fuera de Tauri) se usa un stub para
+// no romper la UI.
 const aero = window.aero || stubBridge()
 
 // ---------------------------------------------------------------------
@@ -354,6 +356,7 @@ async function boot() {
   initPlaylists(ctx)
   initSettings(ctx)
   await initProfile(ctx)
+  await initDiscord(ctx)
 
   updateStatusBar()
   ctx.emit('queue-changed')
@@ -410,7 +413,7 @@ function infoIcon() {
   return `<svg viewBox="0 0 24 24" width="15" height="15"><circle cx="12" cy="12" r="10" fill="none" stroke="rgba(120,190,255,.9)" stroke-width="2"/><path fill="rgba(120,190,255,.9)" d="M11 10h2v7h-2zM11 6.5h2v2h-2z"/></svg>`
 }
 
-// Stub del bridge para previsualizar la UI fuera de Electron.
+// Stub del bridge para previsualizar la UI fuera de Tauri (navegador).
 function stubBridge() {
   return {
     scanFolder: async () => ({ ok: false, files: [] }),

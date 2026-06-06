@@ -4,28 +4,27 @@
   "description": "Media player de escritorio con estetica Windows 7 Aero Liquid Glass",
   "author": "lordvamp9",
   "license": "MIT",
-  "main": "src/main/index.js",
   "scripts": {
-    "dev": "concurrently -k -n VITE,ELECTRON -c cyan,magenta \"vite\" \"electron .\"",
+    "vite": "vite",
+    "dev": "tauri dev",
     "build": "vite build",
     "icon": "node build/generate-icon.mjs",
-    "clean": "node -e \"const fs=require('fs');for(const d of ['dist','release']){fs.rmSync(d,{recursive:true,force:true});console.log('rm '+d)}\"",
-    "dist": "npm run icon && npm run build && electron-builder --config electron-builder.config.js",
-    "dist:win": "npm run icon && npm run build && electron-builder --config electron-builder.config.js --win"
+    "clean": "node -e \"const fs=require('fs');for(const d of ['dist','release','src-tauri/target']){fs.rmSync(d,{recursive:true,force:true});console.log('rm '+d)}\"",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "npm run icon && npm run build && tauri build",
+    "tauri:probe": "tauri dev --config src-tauri/tauri-probe.conf.json --no-watch"
   },
   "dependencies": {
-    "dotenv": "^16.4.5",
-    "electron-store": "^8.2.0",
-    "google-auth-library": "^9.14.1",
-    "googleapis": "^144.0.0",
-    "music-metadata": "^7.14.0",
-    "uuid": "^9.0.1"
+    "@tauri-apps/api": "^2.11.0",
+    "@tauri-apps/plugin-dialog": "^2.7.1",
+    "@tauri-apps/plugin-fs": "^2.5.1",
+    "@tauri-apps/plugin-opener": "^2.5.4",
+    "@tauri-apps/plugin-store": "^2.4.3"
   },
   "devDependencies": {
     "@napi-rs/canvas": "^0.1.65",
-    "concurrently": "^8.2.2",
-    "electron": "github:castlabs/electron-releases#v30.5.1+wvcus",
-    "electron-builder": "^24.13.3",
+    "@tauri-apps/cli": "^2.11.2",
     "png-to-ico": "^2.1.8",
     "vite": "^5.4.10"
   }

@@ -57,31 +57,50 @@ async function restoreSessionIfAny() {
   }
 }
 
-// Verifica si Widevine esta realmente disponible en este renderer. Pregunta
-// primero al proceso principal (status del componente) y, como confirmacion,
-// hace una llamada a requestMediaKeySystemAccess. Cachea el resultado.
+// Verifica si Widevine esta realmente disponible en este renderer y devuelve
+// {ok, hint} para que el llamador muestre UN solo mensaje preciso al usuario.
+// Solo cachea el resultado positivo; los fallos siempre se re-chequean (el CDM
+// puede tardar minutos en descargarse en una primera ejecucion).
 let widevineCheck = null
 async function widevineAvailable() {
-  if (widevineCheck !== null) return widevineCheck
+  if (widevineCheck && widevineCheck.ok) return widevineCheck
+  let mainStatus = null
   try {
-    if (ctx.aero.getWidevineStatus) {
-      const s = await ctx.aero.getWidevineStatus()
-      if (s && s.error && !s.ready) {
-        console.warn('[widevine] main reporta:', s.error)
-      }
-    }
+    if (ctx.aero.getWidevineStatus) mainStatus = await ctx.aero.getWidevineStatus()
+  } catch {}
+  try {
     await navigator.requestMediaKeySystemAccess('com.widevine.alpha', [
       {
         initDataTypes: ['cenc'],
         audioCapabilities: [{ contentType: 'audio/mp4;codecs="mp4a.40.2"' }],
       },
     ])
-    widevineCheck = true
+    widevineCheck = { ok: true }
+    return widevineCheck
   } catch (err) {
-    console.warn('[widevine] requestMediaKeySystemAccess fallo:', err)
-    widevineCheck = false
+    // Clasifica el fallo para dar una guia accionable.
+    const mainErr = (mainStatus && mainStatus.error) || ''
+    const stillLoading = mainStatus && !mainStatus.ready && !mainStatus.error
+    let hint
+    if (stillLoading) {
+      hint =
+        'Widevine se esta descargando en segundo plano. Espera unos segundos y vuelve a darle play.'
+    } else if (/install required components|component|timeout|60s|dl\.google/i.test(mainErr)) {
+      hint =
+        'El CDM de Widevine no se pudo descargar. Reinicia la app, revisa tu conexion a internet ' +
+        'y que tu antivirus o firewall no esten bloqueando dl.google.com.'
+    } else if (/keysystem|unsupported|verification|vmp/i.test(String(err && err.message) + mainErr)) {
+      hint =
+        'La app no esta firmada con la VMP de produccion (castlabs EVS). Spotify Web Playback ' +
+        'solo acepta builds firmadas. Mira la seccion "Spotify / EVS" del README para firmar el .exe.'
+    } else {
+      hint =
+        'Widevine no esta disponible en este equipo. ' +
+        ((err && err.message) || 'Causa desconocida.')
+    }
+    widevineCheck = { ok: false, hint }
+    return widevineCheck
   }
-  return widevineCheck
 }
 
 // Espera a que el SDK registre un device_id. Si ya esta listo retorna true
@@ -112,6 +131,15 @@ async function hardResetSdk() {
 function preloadSdkScript() {
   if (window.Spotify && window.Spotify.Player) return
   if (document.getElementById('spotify-sdk-script')) return
+
+  // Define un callback por defecto para evitar errores si el script se carga
+  // antes de que iniciemos activamente el Web Playback SDK.
+  if (!window.onSpotifyWebPlaybackSDKReady) {
+    window.onSpotifyWebPlaybackSDKReady = () => {
+      console.log('[spotify] SDK script precargado y listo en window.')
+    }
+  }
+
   const tag = document.createElement('script')
   tag.id = 'spotify-sdk-script'
   tag.src = 'https://sdk.scdn.co/spotify-player.js'
@@ -262,11 +290,9 @@ async function play(uri) {
   // Pre-check: Spotify Web Playback exige Widevine (EME). Si no esta cargado
   // el SDK arrojara EMEEError "No supported keysystem was found". Lo detectamos
   // antes para mostrar un mensaje util en vez del timeout generico.
-  if (!(await widevineAvailable())) {
-    ctx.toast(
-      'Widevine no esta disponible. Reinicia la app una vez (la primera ejecucion descarga el CDM) o revisa que tu antivirus/firewall no bloquee dl.google.com.',
-      { platform: 'spotify', duration: 8000 }
-    )
+  const wv = await widevineAvailable()
+  if (!wv.ok) {
+    ctx.toast(wv.hint, { platform: 'spotify', duration: 10000 })
     return
   }
 
@@ -418,16 +444,57 @@ function showLoading(title) {
   ctx.els.nowPlaying.style.opacity = '0.15'
 }
 
-function showError(msg) {
+async function showError(msg) {
   const raw = String(msg || '')
   let friendly = 'No se pudo cargar el contenido de Spotify.'
+  let needsReauth = false
+
   if (raw.includes('403')) {
-    friendly =
-      'Spotify rechazo la solicitud (403). Las playlists creadas por Spotify (Discover Weekly, Daily Mixes, etc.) ya no son accesibles desde aplicaciones en modo desarrollo. Las tuyas propias deberian funcionar.'
+    // El 403 mas frecuente en cuentas reales es por token sin scopes nuevos:
+    // si autenticaste antes de que agregaramos playlist-read-private, tu token
+    // viejo no se actualiza al refrescarse. Hay que reconectar.
+    let missing = []
+    try {
+      const r = await ctx.aero.spotifyMissingScopes()
+      missing = (r && r.missing) || []
+    } catch {}
+
+    if (missing.length || !raw.toLowerCase().includes('discover')) {
+      needsReauth = true
+      friendly =
+        missing.length
+          ? `Tu sesion de Spotify no tiene los permisos necesarios (${missing.join(', ')}). Reconecta para volver a otorgar acceso.`
+          : 'Spotify rechazo la solicitud (403). Lo mas probable es que tu token sea viejo y le falten permisos. Reconecta para arreglarlo.'
+    } else {
+      friendly =
+        'Esta playlist es generada por Spotify (Discover Weekly, Daily Mix, etc.) y ya no es accesible desde apps en modo desarrollo.'
+    }
   } else if (raw.includes('401')) {
-    friendly = 'La sesion de Spotify expiro. Cierra sesion desde Ajustes y vuelve a conectar.'
+    needsReauth = true
+    friendly = 'La sesion de Spotify expiro. Reconecta para continuar.'
   }
-  ctx.els.listViewBody.innerHTML = `<div class="list-empty">${escapeHtml(friendly)}<br><small style="opacity:.45">${escapeHtml(raw)}</small></div>`
+
+  const btn = needsReauth
+    ? `<button id="sp-reauth-btn" class="connect-btn connect-sp" style="margin-top:14px;max-width:220px">Reconectar Spotify</button>`
+    : ''
+
+  ctx.els.listViewBody.innerHTML =
+    `<div class="list-empty">${escapeHtml(friendly)}<br><small style="opacity:.45">${escapeHtml(raw)}</small>${btn}</div>`
+
+  if (needsReauth) {
+    const b = document.getElementById('sp-reauth-btn')
+    if (b) b.addEventListener('click', async () => {
+      try { await ctx.aero.spotifyAuthLogout() } catch {}
+      const res = await ctx.aero.spotifyAuthStart()
+      if (res && res.connected) {
+        ctx.state.auth.spotify = { connected: true, userName: res.userName }
+        ctx.toast('Spotify reconectado correctamente.', { platform: 'spotify' })
+        ctx.els.listView.hidden = true
+      } else {
+        ctx.toast('No se pudo reconectar con Spotify.', { platform: 'spotify' })
+      }
+    })
+  }
 }
 
 function renderTrackList(items, title) {
