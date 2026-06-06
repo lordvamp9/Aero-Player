@@ -1,6 +1,6 @@
 [package]
 name = "aero-player"
-version = "1.0.0"
+version = "1.0.1"
 description = "Media player de escritorio con estetica Windows 7 Aero Liquid Glass"
 authors = ["lordvamp9"]
 edition = "2021"

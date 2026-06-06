@@ -1,6 +1,6 @@
 {
   "productName": "Aero Player",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "identifier": "com.aero.player",
   "build": {
     "beforeDevCommand": "npm run vite",
@@ -22,7 +22,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; media-src 'self' blob: https:; connect-src 'self' https: wss:"
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://sdk.scdn.co https://www.youtube.com https://www.youtube-nocookie.com https://s.ytimg.com https://www.google.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://*.scdn.co https://*.ytimg.com; img-src 'self' https: data: blob:; media-src 'self' blob: data: https: mediastream:; connect-src 'self' https: wss: data: blob:; frame-src 'self' https://sdk.scdn.co https://open.spotify.com https://accounts.spotify.com https://www.youtube.com https://www.youtube-nocookie.com https://accounts.google.com; worker-src 'self' blob:; child-src 'self' blob: https:; font-src 'self' data: https:"
     }
   },
   "bundle": {
