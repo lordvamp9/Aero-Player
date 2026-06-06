@@ -421,3 +421,169 @@
   z-index: 1;
   line-height: 1.35;
 }
+
+/* --------------------------------------------------------------------
+   SETUP WIZARD (primera ejecucion)
+   Overlay full-screen con tarjeta glass central que pide credenciales.
+   -------------------------------------------------------------------- */
+.setup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(900px 600px at 50% 30%, rgba(40, 100, 220, 0.12), transparent 70%),
+    rgba(2, 6, 18, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: setupFadeIn 0.35s ease-out both;
+}
+@keyframes setupFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.setup-card {
+  width: min(640px, 92vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 28px 32px;
+  border-radius: 16px;
+  animation: setupSlideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes setupSlideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.setup-header { margin-bottom: 22px; }
+.setup-title {
+  font-size: 22px;
+  font-weight: var(--weight-light);
+  letter-spacing: 0.3px;
+  color: var(--text-primary);
+  text-shadow: 0 1px 8px rgba(0, 20, 90, 0.6);
+  margin-bottom: 8px;
+}
+.setup-subtitle {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.setup-section {
+  margin-bottom: 22px;
+  padding: 16px 18px;
+  background: linear-gradient(180deg, rgba(14, 32, 78, 0.32), rgba(8, 20, 56, 0.42));
+  border: 1px solid rgba(80, 140, 255, 0.15);
+  border-radius: 11px;
+  box-shadow: inset 0 1px 0 rgba(180, 220, 255, 0.06);
+}
+.setup-section-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+  font-weight: var(--weight-regular);
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.setup-steps {
+  list-style: decimal inside;
+  padding-left: 4px;
+  margin-bottom: 14px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  line-height: 1.75;
+}
+.setup-steps li { margin-bottom: 3px; }
+.setup-steps a {
+  color: rgba(120, 180, 255, 0.95);
+  text-decoration: underline;
+  text-decoration-color: rgba(120, 180, 255, 0.35);
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.setup-steps a:hover { color: #d8eaff; }
+.setup-steps code {
+  background: rgba(20, 50, 130, 0.45);
+  border: 1px solid rgba(80, 140, 255, 0.2);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 10.5px;
+  color: rgba(190, 220, 255, 0.9);
+}
+.setup-steps strong { color: var(--text-primary); font-weight: var(--weight-regular); }
+
+.setup-field {
+  margin-top: 8px;
+}
+.setup-field label {
+  display: block;
+  font-size: 10.5px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+.setup-field input {
+  width: 100%;
+  padding: 9px 12px;
+  background: rgba(5, 14, 38, 0.6);
+  border: 1px solid rgba(80, 140, 255, 0.2);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: Consolas, 'Courier New', monospace;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.setup-field input:focus {
+  border-color: rgba(120, 180, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(60, 130, 255, 0.18);
+}
+
+.setup-error {
+  margin: 10px 0;
+  padding: 9px 12px;
+  background: rgba(160, 30, 30, 0.18);
+  border: 1px solid rgba(255, 90, 90, 0.3);
+  border-radius: 6px;
+  color: rgba(255, 200, 200, 0.95);
+  font-size: 11.5px;
+}
+
+.setup-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  align-items: center;
+}
+.setup-skip {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 6px 12px;
+}
+.setup-skip:hover { color: var(--text-primary); }
+.setup-save {
+  width: auto !important;
+  min-width: 180px;
+  margin: 0 !important;
+}
+
+.setup-note {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(80, 140, 255, 0.12);
+  font-size: 10.5px;
+  color: var(--text-dim);
+  line-height: 1.55;
+}
+

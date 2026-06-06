@@ -27,12 +27,26 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["msi", "nsis"],
-    "icon": ["../build/icon.ico"],
+    "targets": ["nsis"],
+    "publisher": "lordvamp9",
+    "copyright": "Copyright (c) 2025 lordvamp9",
+    "category": "Music",
+    "shortDescription": "Reproductor de musica Aero Liquid Glass",
+    "longDescription": "Media player de escritorio con estetica Windows 7 Aero. Reproduce musica local, YouTube y Spotify desde una sola cola unificada con visualizador de audio en tiempo real.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
     "windows": {
       "nsis": {
-        "installerIcon": "../build/icon.ico",
-        "headerImage": "../build/icon.ico"
+        "displayLanguageSelector": false,
+        "installerIcon": "icons/icon.ico",
+        "installMode": "perMachine",
+        "languages": ["Spanish", "English"],
+        "installerHooks": "installer-hooks.nsh"
       }
     }
   }

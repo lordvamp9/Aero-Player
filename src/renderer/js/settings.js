@@ -57,6 +57,13 @@ export function initSettings(context) {
     ctx.profile.openEditor()
   })
 
+  // Configuracion inicial (wizard de credenciales OAuth)
+  const btnSetup = document.getElementById('btn-open-setup')
+  if (btnSetup) btnSetup.addEventListener('click', () => {
+    close()
+    if (typeof ctx.openSetup === 'function') ctx.openSetup()
+  })
+
   // Refresca el estado de cuentas cuando algo cambie en cualquier modulo
   ctx.on('youtube-auth', refreshAccounts)
   ctx.on('spotify-auth', refreshAccounts)

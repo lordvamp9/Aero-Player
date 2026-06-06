@@ -16,6 +16,7 @@ import { initPlaylists } from './playlists.js'
 import { initSettings } from './settings.js'
 import { initProfile } from './profile.js'
 import { initDiscord } from './discord.js'
+import { maybeShowSetup, showSetup } from './setup.js'
 
 // El puente seguro expuesto desde aero-tauri.js (plugins de Tauri). Si no
 // existe (por ejemplo al abrir el HTML fuera de Tauri) se usa un stub para
@@ -357,6 +358,14 @@ async function boot() {
   initSettings(ctx)
   await initProfile(ctx)
   await initDiscord(ctx)
+
+  // Exponer el wizard manualmente (Ajustes lo invoca con ctx.openSetup()).
+  ctx.openSetup = () => showSetup(ctx)
+
+  // Primera ejecucion: si no hay credenciales configuradas, abrir el wizard.
+  // No bloquea el resto del arranque: la app sigue funcionando sin OAuth (solo
+  // archivos locales hasta que se configure).
+  maybeShowSetup(ctx).catch(() => {})
 
   updateStatusBar()
   ctx.emit('queue-changed')

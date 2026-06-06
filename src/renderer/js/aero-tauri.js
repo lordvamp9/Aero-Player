@@ -17,7 +17,11 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 import { readFile } from '@tauri-apps/plugin-fs'
 import { Store } from '@tauri-apps/plugin-store'
 
-// Credenciales inyectadas por Vite (define) desde el .env de la raiz.
+// Credenciales:
+//   1) DEV: del .env via Vite define (cuando alguien clona el repo y corre dev)
+//   2) PROD: del wizard de primer arranque, guardadas en plugin-store (cache.appConfig)
+// Las del store tienen prioridad si existen. Asi el .exe distribuido no necesita
+// ningun archivo: el usuario abre la app, configura una sola vez, y queda listo.
 const ENV = typeof __AERO_ENV__ !== 'undefined' ? __AERO_ENV__ : {}
 
 if (window.__TAURI_INTERNALS__ && !window.aero) {
@@ -25,12 +29,30 @@ if (window.__TAURI_INTERNALS__ && !window.aero) {
   // Persistencia (plugin-store) con acceso por clave punteada (auth.spotify)
   // -------------------------------------------------------------------
   let store = null
+
+  // CFG: credenciales activas (mezcla store + ENV; store gana).
+  // Se inicializan despues de leer el store en `ready`.
+  const CFG = {
+    SPOTIFY_CLIENT_ID: '',
+    SPOTIFY_REDIRECT_URI: 'http://127.0.0.1:3000/auth/spotify/callback',
+    GOOGLE_CLIENT_ID: '',
+    GOOGLE_CLIENT_SECRET: '',
+    GOOGLE_REDIRECT_URI: 'http://127.0.0.1:3000/auth/google/callback',
+  }
+  function applyConfigSource(src) {
+    if (!src || typeof src !== 'object') return
+    for (const k of Object.keys(CFG)) {
+      const v = src[k]
+      if (typeof v === 'string' && v.trim()) CFG[k] = v.trim()
+    }
+  }
   const cache = {
     config: { visualizerMode: 'liquid', volume: 0.8, lastFolders: [] },
     library: [],
     favorites: [],
     playlists: [],
     auth: { google: null, spotify: null },
+    appConfig: null, // credenciales OAuth configuradas por el usuario en el wizard
   }
 
   const ready = (async () => {
@@ -41,6 +63,9 @@ if (window.__TAURI_INTERNALS__ && !window.aero) {
         if (v !== undefined && v !== null) cache[key] = v
       } catch {}
     }
+    // Aplica ENV (dev) primero, luego appConfig (prod), para que el store gane.
+    applyConfigSource(ENV)
+    applyConfigSource(cache.appConfig)
   })()
 
   function dottedGet(key) {
@@ -127,23 +152,23 @@ if (window.__TAURI_INTERNALS__ && !window.aero) {
 
   async function spotifyAuthStart() {
     await ready
-    const redirectUri = ENV.SPOTIFY_REDIRECT_URI
+    const redirectUri = CFG.SPOTIFY_REDIRECT_URI
     const scopes = [
       'user-read-private', 'user-read-email', 'playlist-read-private',
       'playlist-read-collaborative', 'user-library-read',
       'user-read-playback-state', 'user-modify-playback-state', 'streaming',
     ]
     try {
-      if (!ENV.SPOTIFY_CLIENT_ID) throw new Error('Configura SPOTIFY_CLIENT_ID en el archivo .env.')
+      if (!CFG.SPOTIFY_CLIENT_ID) throw new Error('Falta el Client ID de Spotify. Abri Ajustes -> Configuracion inicial.')
       const tokens = await runOAuth({
         authBase: 'https://accounts.spotify.com/authorize',
         redirectUri, provider: 'Spotify',
-        params: { client_id: ENV.SPOTIFY_CLIENT_ID, response_type: 'code', redirect_uri: redirectUri, scope: scopes.join(' ') },
+        params: { client_id: CFG.SPOTIFY_CLIENT_ID, response_type: 'code', redirect_uri: redirectUri, scope: scopes.join(' ') },
         tokenExchange: async (code, verifier) => {
           const res = await fetch('https://accounts.spotify.com/api/token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ client_id: ENV.SPOTIFY_CLIENT_ID, grant_type: 'authorization_code', code, redirect_uri: redirectUri, code_verifier: verifier }).toString(),
+            body: new URLSearchParams({ client_id: CFG.SPOTIFY_CLIENT_ID, grant_type: 'authorization_code', code, redirect_uri: redirectUri, code_verifier: verifier }).toString(),
           })
           if (!res.ok) throw new Error('Error al intercambiar token de Spotify: ' + (await res.text()))
           return res.json()
@@ -180,7 +205,7 @@ if (window.__TAURI_INTERNALS__ && !window.aero) {
         const res = await fetch('https://accounts.spotify.com/api/token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: session.tokens.refresh_token, client_id: ENV.SPOTIFY_CLIENT_ID }).toString(),
+          body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: session.tokens.refresh_token, client_id: CFG.SPOTIFY_CLIENT_ID }).toString(),
         })
         if (res.ok) {
           const data = await res.json()
@@ -295,21 +320,21 @@ if (window.__TAURI_INTERNALS__ && !window.aero) {
 
   async function googleAuthStart() {
     await ready
-    const redirectUri = ENV.GOOGLE_REDIRECT_URI
+    const redirectUri = CFG.GOOGLE_REDIRECT_URI
     try {
-      if (!ENV.GOOGLE_CLIENT_ID) throw new Error('Configura GOOGLE_CLIENT_ID en el archivo .env.')
+      if (!CFG.GOOGLE_CLIENT_ID) throw new Error('Falta el Client ID de Google. Abri Ajustes -> Configuracion inicial.')
       const tokens = await runOAuth({
         authBase: 'https://accounts.google.com/o/oauth2/v2/auth',
         redirectUri, provider: 'Google',
         params: {
-          client_id: ENV.GOOGLE_CLIENT_ID, redirect_uri: redirectUri, response_type: 'code',
+          client_id: CFG.GOOGLE_CLIENT_ID, redirect_uri: redirectUri, response_type: 'code',
           scope: 'https://www.googleapis.com/auth/youtube.readonly', access_type: 'offline', prompt: 'consent',
         },
         tokenExchange: async (code, verifier) => {
           const res = await fetch('https://oauth2.googleapis.com/token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ client_id: ENV.GOOGLE_CLIENT_ID, client_secret: ENV.GOOGLE_CLIENT_SECRET, code, code_verifier: verifier, grant_type: 'authorization_code', redirect_uri: redirectUri }).toString(),
+            body: new URLSearchParams({ client_id: CFG.GOOGLE_CLIENT_ID, client_secret: CFG.GOOGLE_CLIENT_SECRET, code, code_verifier: verifier, grant_type: 'authorization_code', redirect_uri: redirectUri }).toString(),
           })
           if (!res.ok) throw new Error('Error al intercambiar token de Google: ' + (await res.text()))
           const d = await res.json()
@@ -340,7 +365,7 @@ if (window.__TAURI_INTERNALS__ && !window.aero) {
         const res = await fetch('https://oauth2.googleapis.com/token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: s.tokens.refresh_token, client_id: ENV.GOOGLE_CLIENT_ID, client_secret: ENV.GOOGLE_CLIENT_SECRET }).toString(),
+          body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: s.tokens.refresh_token, client_id: CFG.GOOGLE_CLIENT_ID, client_secret: CFG.GOOGLE_CLIENT_SECRET }).toString(),
         })
         if (res.ok) {
           const d = await res.json()
@@ -618,9 +643,47 @@ if (window.__TAURI_INTERNALS__ && !window.aero) {
       } catch (err) { return { canceled: false, error: String((err && err.message) || err) } }
     },
 
+    // Abrir URL externa en el navegador del sistema (para el wizard de setup).
+    openExternal: async (url) => { try { await openUrl(url) } catch (e) { console.warn('[aero-tauri] openExternal:', e) } },
+
     // Persistencia
     storeGet: async (key) => { await ready; return dottedGet(key) },
     storeSet: async (key, value) => { await ready; await dottedSet(key, value); return true },
+
+    // --- Wizard de configuracion inicial ---
+    // Devuelve el estado actual de credenciales (sin secrets en plano si no hay store).
+    getAppConfig: async () => {
+      await ready
+      const saved = cache.appConfig || {}
+      return {
+        SPOTIFY_CLIENT_ID: saved.SPOTIFY_CLIENT_ID || ENV.SPOTIFY_CLIENT_ID || '',
+        SPOTIFY_REDIRECT_URI: saved.SPOTIFY_REDIRECT_URI || ENV.SPOTIFY_REDIRECT_URI || CFG.SPOTIFY_REDIRECT_URI,
+        GOOGLE_CLIENT_ID: saved.GOOGLE_CLIENT_ID || ENV.GOOGLE_CLIENT_ID || '',
+        GOOGLE_CLIENT_SECRET: saved.GOOGLE_CLIENT_SECRET || ENV.GOOGLE_CLIENT_SECRET || '',
+        GOOGLE_REDIRECT_URI: saved.GOOGLE_REDIRECT_URI || ENV.GOOGLE_REDIRECT_URI || CFG.GOOGLE_REDIRECT_URI,
+        isConfigured: !!(saved.SPOTIFY_CLIENT_ID || ENV.SPOTIFY_CLIENT_ID) &&
+                      !!(saved.GOOGLE_CLIENT_ID || ENV.GOOGLE_CLIENT_ID),
+      }
+    },
+    // Guarda credenciales del wizard. Aplica al CFG en caliente (sin reiniciar).
+    setAppConfig: async (next) => {
+      await ready
+      const clean = {}
+      for (const k of Object.keys(CFG)) {
+        if (next && typeof next[k] === 'string' && next[k].trim()) clean[k] = next[k].trim()
+      }
+      cache.appConfig = { ...(cache.appConfig || {}), ...clean }
+      applyConfigSource(cache.appConfig)
+      await persist('appConfig')
+      return { ok: true }
+    },
+    // Borra credenciales (logout total + reset wizard).
+    clearAppConfig: async () => {
+      await ready
+      cache.appConfig = null
+      await persist('appConfig')
+      return { ok: true }
+    },
 
     // Widevine: en WebView2 esta disponible nativamente.
     getWidevineStatus: async () => ({ ready: true, error: null }),
