@@ -646,6 +646,20 @@ if (window.__TAURI_INTERNALS__ && !window.aero) {
     // Abrir URL externa en el navegador del sistema (para el wizard de setup).
     openExternal: async (url) => { try { await openUrl(url) } catch (e) { console.warn('[aero-tauri] openExternal:', e) } },
 
+    // Equalizer APO (EQ a nivel sistema)
+    eqapoStatus: async () => {
+      try { return await invoke('eqapo_status') }
+      catch (e) { return { installed: false, path: null, error: String(e) } }
+    },
+    eqapoApply: async (bands, preamp) => {
+      try { await invoke('eqapo_apply', { bands, preamp: preamp || 0 }); return { ok: true } }
+      catch (e) { return { ok: false, error: String(e) } }
+    },
+    eqapoClear: async () => {
+      try { await invoke('eqapo_clear'); return { ok: true } }
+      catch (e) { return { ok: false, error: String(e) } }
+    },
+
     // Persistencia
     storeGet: async (key) => { await ready; return dottedGet(key) },
     storeSet: async (key, value) => { await ready; await dottedSet(key, value); return true },

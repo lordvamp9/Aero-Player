@@ -419,6 +419,88 @@
   box-shadow: 0 0 10px rgba(60, 140, 255, 0.35);
 }
 
+/* Separador entre presets builtin y de usuario */
+.eq-preset-sep {
+  display: inline-block;
+  width: 1px;
+  height: 18px;
+  background: linear-gradient(180deg, transparent, rgba(120, 175, 255, 0.35), transparent);
+  margin: 0 3px;
+  vertical-align: middle;
+}
+
+/* Wrapper de preset de usuario: boton + X borrar */
+.eq-preset-wrap {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(80, 140, 255, 0.18);
+  background: rgba(20, 50, 130, 0.22);
+}
+.eq-preset-wrap:hover { border-color: rgba(140, 200, 255, 0.35); }
+.eq-preset-wrap .eq-preset {
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  padding-right: 6px;
+}
+.eq-preset-wrap .eq-preset:hover { background: rgba(40, 90, 190, 0.32); }
+.eq-preset-wrap .eq-preset.active {
+  background: linear-gradient(180deg, rgba(55, 110, 220, 0.5), rgba(28, 70, 175, 0.6));
+  color: #eaf3ff;
+}
+.eq-preset-del {
+  height: 24px;
+  width: 22px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: rgba(180, 200, 230, 0.55);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  border-left: 1px solid rgba(80, 140, 255, 0.18);
+}
+.eq-preset-del:hover {
+  color: rgba(255, 130, 130, 0.95);
+  background: rgba(160, 30, 30, 0.2);
+}
+
+/* Banner de estado EqAPO */
+.eq-eqapo-status {
+  margin-top: 10px;
+  padding: 7px 11px;
+  border-radius: 6px;
+  font-size: 11px;
+  letter-spacing: 0.2px;
+  text-align: center;
+}
+.eq-eqapo-status.eq-ok {
+  color: rgba(140, 220, 170, 0.9);
+  background: rgba(20, 80, 50, 0.2);
+  border: 1px solid rgba(50, 180, 100, 0.25);
+}
+.eq-eqapo-status.eq-warn {
+  color: rgba(240, 200, 130, 0.9);
+  background: rgba(80, 55, 15, 0.25);
+  border: 1px solid rgba(220, 160, 60, 0.3);
+}
+.eq-eqapo-status a {
+  color: rgba(150, 200, 255, 0.95);
+  text-decoration: underline;
+  cursor: pointer;
+  margin-left: 4px;
+}
+.eq-eqapo-status a:hover { color: #d8eaff; }
+
+#eq-save-preset {
+  font-size: 11px;
+  padding: 0 10px;
+  height: 24px;
+}
+
 /* EQ deshabilitado: atenua sin desaparecer */
 .eq-disabled .eq-curve,
 .eq-disabled .eq-bands {

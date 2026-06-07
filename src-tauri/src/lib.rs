@@ -7,6 +7,7 @@ use lofty::file::{AudioFile, TaggedFileExt};
 use lofty::tag::Accessor;
 
 mod discord;
+mod eqapo;
 
 // =====================================================================
 // OAuth: servidor de callback de un solo uso (reemplaza al http de Node)
@@ -210,7 +211,10 @@ pub fn run() {
             discord::discord_init,
             discord::discord_update,
             discord::discord_clear,
-            discord::discord_disconnect
+            discord::discord_disconnect,
+            eqapo::eqapo_status,
+            eqapo::eqapo_apply,
+            eqapo::eqapo_clear
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {
@@ -221,6 +225,15 @@ pub fn run() {
                 )?;
             }
             Ok(())
+        })
+        .on_window_event(|_window, event| {
+            // Al cerrar la ventana, dejar EqAPO en bypass para que el resto del
+            // sistema vuelva a sonar sin filtros (Aero no esta corriendo, no debe
+            // procesar nada). Si EqAPO no esta instalado, no hace nada.
+            if let tauri::WindowEvent::CloseRequested { .. } = event {
+                let _ = eqapo::eqapo_clear();
+                let _ = discord::discord_disconnect();
+            }
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
