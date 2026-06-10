@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="./styles/player.css" />
     <link rel="stylesheet" href="./styles/playlists.css" />
     <link rel="stylesheet" href="./styles/settings.css" />
+    <link rel="stylesheet" href="./styles/aero-fx.css" />
   </head>
   <body>
     <div class="app-window" id="app-window">
@@ -254,6 +255,20 @@
                   <ellipse cx="12" cy="12" rx="4" ry="9" />
                 </g>
                 <circle cx="12" cy="12" r="2.2" fill="currentColor" />
+              </svg>
+            </button>
+            <button class="viz-mode" data-mode="aurora" title="Aurora">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+                  d="M5 21c-1-5 .5-12 2-15 1.2 5 1.2 10 .6 15M12 21c-1-6 .4-13 2-16.5 1.3 5.5 1.3 11 .5 16.5M19 21c-.8-4 .3-9 1.3-11.5" />
+              </svg>
+            </button>
+            <button class="viz-mode" data-mode="radial" title="Espectro radial">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+                  <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" />
+                </g>
+                <circle cx="12" cy="12" r="2.4" fill="currentColor" />
               </svg>
             </button>
             <span class="viz-sep" aria-hidden="true"></span>

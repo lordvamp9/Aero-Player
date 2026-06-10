@@ -27,6 +27,8 @@ let bigOrbs = []   // liquid + waveform: orbes grandes flotantes
 let orbiters = [] // orbital
 let peaks = [] // spectrum: caida de picos
 let specSmooth = [] // spectrum: alturas suavizadas (estabilidad anti-parpadeo)
+let auroraBands = [] // aurora: cortinas de luz
+let radialSmooth = [] // radial: longitudes suavizadas de las barras circulares
 const BIN_COUNT = 1024
 
 // --- Detector de beat ---------------------------------------------------
@@ -60,8 +62,10 @@ export function initVisualizer(context) {
   initParticles()
   initBigOrbs()
   initOrbiters()
+  initAurora()
   peaks = new Array(96).fill(0)
   specSmooth = new Array(96).fill(0)
+  radialSmooth = new Array(72).fill(0)
 
   wireSelector()
   wireFullscreen()
@@ -304,6 +308,16 @@ function draw() {
       g.globalAlpha = fade
       drawOrbital()
       break
+    case 'aurora':
+      trail(0.13)
+      g.globalAlpha = fade
+      drawAurora()
+      break
+    case 'radial':
+      clearBackground()
+      g.globalAlpha = fade
+      drawRadial()
+      break
     case 'liquid':
     default:
       clearBackground()
@@ -537,64 +551,62 @@ function drawSpectrum() {
   g.lineTo(width, mid + 0.5)
   g.stroke()
 
-  // Un solo gradiente vertical para TODAS las barras (antes se creaba uno por
-  // barra: ~96 objetos de gradiente por frame). Las barras mas altas alcanzan
-  // los tonos claros de la punta; no hay cambio visual perceptible.
+  // Gradientes COMPARTIDOS por todas las barras (creados una vez por frame en
+  // vez de ~3 por barra). Reduce de ~290 a 2 las allocations de gradiente por
+  // frame: gran alivio para el recolector de basura y la fluidez.
   const barGrad = g.createLinearGradient(0, mid, 0, mid - headroom)
   barGrad.addColorStop(0, 'rgba(18, 52, 155, 0.95)')
   barGrad.addColorStop(0.5, 'rgba(50, 120, 240, 0.96)')
   barGrad.addColorStop(0.85, 'rgba(120, 195, 255, 1)')
   barGrad.addColorStop(1, 'rgba(200, 232, 255, 1)')
 
+  // Reflexion: un solo gradiente anclado en la base, reutilizado por todas.
+  const refGrad = g.createLinearGradient(0, mid, 0, mid + headroom * 0.7)
+  refGrad.addColorStop(0, 'rgba(80, 160, 240, 0.4)')
+  refGrad.addColorStop(0.5, 'rgba(50, 120, 220, 0.14)')
+  refGrad.addColorStop(1, 'rgba(40, 100, 200, 0)')
+
+  const radius = Math.min(barW / 2, 3)
+
+  // PASADA 1: cuerpos de barras + reflexion (sin sombra -> mucho mas barato).
   for (let i = 0; i < bars; i++) {
     let v = 0
     for (let j = 0; j < step; j++) v += freq[i * step + j]
-    v = v / step / 255 // 0..1
-    v = Math.pow(v, 1.05) // curva mas dramatica que antes
-    // Boost adicional con el beat para que se "abran" en cada golpe
+    v = v / step / 255
+    v = Math.pow(v, 1.05)
     let h = Math.min(headroom, v * headroom * (1.05 + kick * 0.55 + energy * 0.25))
-    // Suavizado: ataque rapido (0.5) y caida lenta (0.16). Elimina el parpadeo
-    // nervioso de las barras y las hace mucho mas estables y agradables.
     specSmooth[i] += (h - specSmooth[i]) * (h > specSmooth[i] ? 0.5 : 0.16)
     h = specSmooth[i]
     const x = i * (barW + gap)
     const top = mid - h
 
-    // Caida suave de picos
     if (h > peaks[i]) peaks[i] = h
     else peaks[i] = Math.max(0, peaks[i] - 1.8)
 
-    // Barra principal: reutiliza el gradiente compartido (ver arriba).
     g.fillStyle = barGrad
-    if (h > headroom * 0.5) {
-      g.shadowColor = 'rgba(110, 190, 255, 0.85)'
-      g.shadowBlur = 16 + kick * 12
+    roundRectFill(x, top, barW, h, radius)
+
+    // Cap vidrioso: relleno plano translucido (sin gradiente por barra).
+    if (h > 3) {
+      g.fillStyle = 'rgba(255, 255, 255, 0.5)'
+      roundRectFill(x, top, barW, Math.min(7, h), radius)
     }
-    roundRectFill(x, top, barW, h, Math.min(barW / 2, 3))
-    g.shadowBlur = 0
 
-    // Highlight superior (brillo vidrioso en la punta de la barra)
-    const hi = g.createLinearGradient(0, top, 0, top + Math.min(10, h))
-    hi.addColorStop(0, 'rgba(255, 255, 255, 0.55)')
-    hi.addColorStop(1, 'rgba(255, 255, 255, 0)')
-    g.fillStyle = hi
-    roundRectFill(x, top, barW, Math.min(10, h), Math.min(barW / 2, 3))
-
-    // Indicador de pico con glow propio
-    g.fillStyle = `rgba(220, 240, 255, ${0.9 + kick * 0.1})`
-    g.shadowColor = 'rgba(150, 210, 255, 0.7)'
-    g.shadowBlur = 6
-    g.fillRect(x, mid - peaks[i] - 2, barW, 2.4)
-    g.shadowBlur = 0
-
-    // Reflexion espejada con desvanecimiento
-    const refGrad = g.createLinearGradient(0, mid, 0, mid + h * 0.7)
-    refGrad.addColorStop(0, 'rgba(80, 160, 240, 0.45)')
-    refGrad.addColorStop(0.5, 'rgba(50, 120, 220, 0.18)')
-    refGrad.addColorStop(1, 'rgba(40, 100, 200, 0)')
+    // Reflexion espejada (gradiente compartido).
     g.fillStyle = refGrad
-    roundRectFill(x, mid + 2, barW, h * 0.7, Math.min(barW / 2, 3))
+    roundRectFill(x, mid + 2, barW, h * 0.7, radius)
   }
+
+  // PASADA 2: glow + picos en una sola tanda con la sombra encendida una vez.
+  // Agrupar el trabajo con sombra evita prender/apagar el shadowBlur 200 veces.
+  g.shadowColor = 'rgba(120, 195, 255, 0.8)'
+  g.shadowBlur = 12 + kick * 12
+  g.fillStyle = `rgba(225, 242, 255, ${0.9 + kick * 0.1})`
+  for (let i = 0; i < bars; i++) {
+    const x = i * (barW + gap)
+    g.fillRect(x, mid - peaks[i] - 2, barW, 2.4)
+  }
+  g.shadowBlur = 0
 
   // Orbes gigantes flotando detras (capa atmosferica de la estetica Aero)
   drawBigOrbs(pulse, kick)
@@ -716,6 +728,170 @@ function drawOrbital() {
     g.fill()
     g.shadowBlur = 0
   })
+}
+
+// ---------------------------------------------------------------------
+// MODO 5 · AURORA (cortinas de luz Frutiger Aero)
+// ---------------------------------------------------------------------
+// Cinco cortinas verticales onduladas que se mecen con la musica, en la
+// paleta cian/verde/azul/violeta de la estetica Frutiger Aero. Usa mezcla
+// aditiva ('lighter') para que las superposiciones brillen como luz real.
+function initAurora() {
+  auroraBands = []
+  // Tonos tipo aurora boreal: verde-cian, cian, azul, indigo, violeta.
+  const palette = [
+    [80, 255, 200],
+    [70, 220, 255],
+    [90, 160, 255],
+    [140, 130, 255],
+    [180, 120, 255],
+  ]
+  for (let i = 0; i < 5; i++) {
+    auroraBands.push({
+      x: 0.12 + i * 0.19,
+      phase: Math.random() * Math.PI * 2,
+      speed: 0.004 + Math.random() * 0.004,
+      col: palette[i],
+      bin: 4 + i * 9, // banda de frecuencia que la modula
+    })
+  }
+}
+
+function drawAurora() {
+  const freq = getFrequency()
+  const { energy, kick, pulse } = getPulse(freq)
+
+  // Resplandor base inferior (suelo de luz)
+  const floor = g.createLinearGradient(0, height, 0, height * 0.5)
+  floor.addColorStop(0, `rgba(40, 120, 160, ${0.1 + pulse * 0.15})`)
+  floor.addColorStop(1, 'rgba(40, 120, 160, 0)')
+  g.fillStyle = floor
+  g.fillRect(0, 0, width, height)
+
+  g.globalCompositeOperation = 'lighter'
+  const stepY = 16
+
+  auroraBands.forEach((b) => {
+    b.phase += b.speed * (1 + energy * 1.6)
+    const fv = freq[b.bin % freq.length] / 255
+    const amp = width * (0.05 + fv * 0.08 + kick * 0.03)
+    const cx = b.x * width + Math.sin(b.phase * 0.7) * width * 0.06
+    const halfW = width * (0.05 + 0.025 * Math.sin(b.phase * 1.3)) + amp * 0.4
+    const [r, gg, bl] = b.col
+    const alpha = 0.1 + fv * 0.22 + pulse * 0.12
+
+    const grad = g.createLinearGradient(0, 0, 0, height)
+    grad.addColorStop(0, `rgba(${r}, ${gg}, ${bl}, 0)`)
+    grad.addColorStop(0.35, `rgba(${r}, ${gg}, ${bl}, ${alpha})`)
+    grad.addColorStop(0.7, `rgba(${r}, ${gg}, ${bl}, ${alpha * 0.7})`)
+    grad.addColorStop(1, `rgba(${r}, ${gg}, ${bl}, 0)`)
+    g.fillStyle = grad
+
+    // Borde izquierdo (bajando) y derecho (subiendo) ondulados -> cinta.
+    g.beginPath()
+    for (let y = 0; y <= height; y += stepY) {
+      const ny = y / height
+      const wob = Math.sin(ny * 5 + b.phase * 2) * amp + Math.sin(ny * 9 - b.phase) * amp * 0.4
+      g.lineTo(cx + wob - halfW, y)
+    }
+    for (let y = height; y >= 0; y -= stepY) {
+      const ny = y / height
+      const wob = Math.sin(ny * 5 + b.phase * 2) * amp + Math.sin(ny * 9 - b.phase) * amp * 0.4
+      g.lineTo(cx + wob + halfW, y)
+    }
+    g.closePath()
+    g.fill()
+  })
+
+  // Estrellitas suaves que titilan arriba (poca densidad, barato)
+  g.fillStyle = `rgba(220, 245, 255, ${0.25 + pulse * 0.3})`
+  for (let i = 0; i < 18; i++) {
+    const sx = ((i * 137.5) % 100) / 100 * width
+    const sy = ((i * 53.7) % 100) / 100 * height * 0.55
+    const tw = 0.5 + 0.5 * Math.sin(t * 0.05 + i)
+    if (tw > 0.6) {
+      g.globalAlpha = (tw - 0.6) * 1.2 * fade
+      g.fillRect(sx, sy, 1.6, 1.6)
+    }
+  }
+  g.globalAlpha = fade
+  g.globalCompositeOperation = 'source-over'
+}
+
+// ---------------------------------------------------------------------
+// MODO 6 · RADIAL (espectro circular pulsante, "fiesta")
+// ---------------------------------------------------------------------
+// Barras dispuestas en circulo que crecen hacia afuera con la frecuencia,
+// nucleo que late con el bass y rotacion continua. Mirror espejado para
+// simetria. Sin sombra por barra (se usa un unico glow en el nucleo) para
+// mantenerlo fluido aun con 72 barras.
+function drawRadial() {
+  const freq = getFrequency()
+  const { energy, kick, pulse } = getPulse(freq)
+  const cx = width / 2
+  const cy = height / 2
+  const bars = 72
+  const half = bars / 2
+  const minDim = Math.min(width, height)
+  const innerR = minDim * (0.11 + pulse * 0.05)
+  const maxLen = minDim * 0.32
+  const rot = t * 0.0035
+  const step = Math.floor((freq.length * 0.6) / half)
+
+  // Nucleo brillante que respira con el beat (unico uso de glow)
+  const coreR = innerR * (0.7 + energy * 0.5 + kick * 0.4)
+  const core = g.createRadialGradient(cx, cy, 0, cx, cy, coreR * 2.2)
+  core.addColorStop(0, `rgba(190, 230, 255, ${0.55 + kick * 0.3})`)
+  core.addColorStop(0.4, `rgba(90, 170, 255, ${0.3 + pulse * 0.2})`)
+  core.addColorStop(1, 'rgba(40, 110, 235, 0)')
+  g.fillStyle = core
+  g.beginPath()
+  g.arc(cx, cy, coreR * 2.2, 0, Math.PI * 2)
+  g.fill()
+
+  // Anillo interior nitido
+  g.strokeStyle = `rgba(170, 215, 255, ${0.4 + pulse * 0.3})`
+  g.lineWidth = 1.5
+  g.beginPath()
+  g.arc(cx, cy, innerR, 0, Math.PI * 2)
+  g.stroke()
+
+  g.lineCap = 'round'
+  for (let i = 0; i < half; i++) {
+    let v = 0
+    for (let j = 0; j < step; j++) v += freq[i * step + j]
+    v = Math.pow(v / step / 255, 1.05)
+    let len = v * maxLen * (1 + kick * 0.5 + energy * 0.25)
+    // Suavizado para estabilidad (igual que el espectro lineal)
+    radialSmooth[i] += (len - radialSmooth[i]) * (len > radialSmooth[i] ? 0.5 : 0.18)
+    len = radialSmooth[i]
+
+    // Color: graves claros-calidos -> agudos cian brillante
+    const tnorm = i / half
+    const r = 90 + (1 - tnorm) * 120
+    const gg = 150 + tnorm * 90
+    const bl = 255
+    const a = 0.5 + v * 0.5
+    g.strokeStyle = `rgba(${r | 0}, ${gg | 0}, ${bl}, ${a})`
+    g.lineWidth = 2 + pulse * 1.5
+
+    // Barra y su espejo (i y i+half quedan opuestos -> simetria)
+    for (let m = 0; m < 2; m++) {
+      const ang = ((i + m * half) / bars) * Math.PI * 2 + rot
+      const ca = Math.cos(ang)
+      const sa = Math.sin(ang)
+      g.beginPath()
+      g.moveTo(cx + ca * innerR, cy + sa * innerR)
+      g.lineTo(cx + ca * (innerR + len), cy + sa * (innerR + len))
+      g.stroke()
+      // Punta luminosa
+      g.fillStyle = `rgba(220, 240, 255, ${a})`
+      g.beginPath()
+      g.arc(cx + ca * (innerR + len), cy + sa * (innerR + len), 1.6 + pulse, 0, Math.PI * 2)
+      g.fill()
+    }
+  }
+  g.lineCap = 'butt'
 }
 
 // ---------------------------------------------------------------------

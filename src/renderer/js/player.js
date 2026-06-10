@@ -21,6 +21,8 @@ let analyser = null
 let sourceNode = null
 let eqFilters = [] // array de BiquadFilterNode (uno por banda)
 let eqEnabled = false
+let bassShelf = null // lowshelf de realce de graves (post-analyser)
+let bassBoostDb = 5 // realce de graves por defecto (calido, sin saturar)
 
 // Analyser independiente alimentado por la captura de audio del sistema
 // (loopback) para visualizar Spotify / YouTube. Se inicia bajo demanda en
@@ -59,6 +61,7 @@ export function initPlayer(context) {
     getTimeDomainData,
     getCurrent,
     getPlaybackTimes,
+    setBassBoost,
     isLocalActive: () => getCurrent()?.source === 'local' && ctx.state.isPlaying,
   }
 
@@ -82,8 +85,38 @@ function ensureAudioGraph() {
   analyser.fftSize = 2048
   analyser.smoothingTimeConstant = 0.82
   sourceNode = audioCtx.createMediaElementSource(audio)
+
+  // --- Realce de graves "fiesta" + limitador de seguridad ---
+  // El bass boost va DESPUES del analyser para que el visualizador siga
+  // leyendo la senal cruda (sin falsear el espectro) y para que la cadena
+  // del ecualizador (source -> filtros -> analyser) no lo pise nunca.
+  //   analyser -> bassShelf -> subPeak -> limiter -> destino
+  bassShelf = audioCtx.createBiquadFilter()
+  bassShelf.type = 'lowshelf'
+  bassShelf.frequency.value = 110
+  bassShelf.gain.value = bassBoostDb // realce calido de graves
+
+  const subPeak = audioCtx.createBiquadFilter()
+  subPeak.type = 'peaking'
+  subPeak.frequency.value = 55 // golpe de sub-bass envolvente
+  subPeak.Q.value = 0.9
+  subPeak.gain.value = bassBoostDb * 0.6
+
+  // Limitador transparente: solo actua en los picos, evita el clipping que
+  // produciria el realce de graves en temas ya masterizados fuerte.
+  const limiter = audioCtx.createDynamicsCompressor()
+  limiter.threshold.value = -1.5
+  limiter.knee.value = 0
+  limiter.ratio.value = 20
+  limiter.attack.value = 0.002
+  limiter.release.value = 0.2
+
   sourceNode.connect(analyser)
-  analyser.connect(audioCtx.destination)
+  analyser.connect(bassShelf)
+  bassShelf.connect(subPeak)
+  subPeak.connect(limiter)
+  limiter.connect(audioCtx.destination)
+
   window._aeroAnalyser = analyser
   // Si el panel de settings ya pidio bandas antes de que existiera el grafo,
   // las aplicamos ahora.
@@ -183,6 +216,19 @@ function setEqEnabled(on, bands) {
   const use = bands || lastBands || []
   if (audioCtx) applyEqBands(use)
   else if (use.length) pendingBands = use
+}
+
+// Ajusta el realce de graves (en dB). El shelf principal toma el valor y el
+// pico de sub-bass un 60% para reforzar el cuerpo sin emborronar.
+function setBassBoost(db) {
+  bassBoostDb = Math.max(0, Math.min(12, Number(db) || 0))
+  if (bassShelf && audioCtx) {
+    try {
+      bassShelf.gain.setTargetAtTime(bassBoostDb, audioCtx.currentTime, 0.02)
+    } catch {
+      bassShelf.gain.value = bassBoostDb
+    }
+  }
 }
 
 // Devuelve el analyser que esta sonando en este momento. Para local usa el

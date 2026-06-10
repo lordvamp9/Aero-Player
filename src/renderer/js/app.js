@@ -17,6 +17,7 @@ import { initSettings } from './settings.js'
 import { initProfile } from './profile.js'
 import { initDiscord } from './discord.js'
 import { maybeShowSetup, showSetup } from './setup.js'
+import { playIntro } from './intro-sound.js'
 
 // El puente seguro expuesto desde aero-tauri.js (plugins de Tauri). Si no
 // existe (por ejemplo al abrir el HTML fuera de Tauri) se usa un stub para
@@ -373,6 +374,10 @@ async function boot() {
 
   // El visualizador arranca en modo demo de inmediato.
   ctx.visualizer.start()
+
+  // Sonido de bienvenida (campanas Aero + sub-bass). Solo una vez por arranque.
+  // Si el navegador bloquea el autoplay, suena al primer gesto del usuario.
+  playIntro()
 }
 
 document.addEventListener('DOMContentLoaded', boot)

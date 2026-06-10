@@ -1,0 +1,389 @@
+/* =====================================================================
+   AERO PLAYER  ·  aero-fx.css
+   Capa de realce visual "Frutiger Aero / Liquid Glass". Se carga al final
+   para profundizar la estetica sin reescribir los modulos base:
+     - Cristal con mas profundidad y un barrido de luz lento (sheen)
+     - Texto cromado vidrioso en los titulos protagonistas
+     - Micro-animaciones de hover y deslizamientos con vida
+     - Entradas escalonadas en listas
+     - Portada "ahora suena" con halo y reflejo
+
+   Rendimiento: todas las animaciones continuas usan transform/opacity o
+   background-position sobre pocos elementos; los efectos de hover no tienen
+   costo en reposo. No se anima backdrop-filter (caro) en ningun lado.
+   ===================================================================== */
+
+/* --------------------------------------------------------------------
+   1 · CRISTAL CON MAS PROFUNDIDAD
+   Sombra exterior en dos niveles + doble inset highlight (arriba claro,
+   cuerpo con un halo azul tenue) para que el panel "flote".
+   -------------------------------------------------------------------- */
+.glass-panel {
+  box-shadow:
+    0 10px 34px rgba(0, 10, 46, 0.34),
+    0 2px 10px rgba(0, 8, 36, 0.22),
+    inset 0 1px 0 rgba(205, 232, 255, 0.16),
+    inset 0 0 36px rgba(40, 95, 205, 0.05);
+}
+
+/* --------------------------------------------------------------------
+   2 · BARRIDO DE LUZ (sheen) sobre el cristal
+   Reconvierte la capa de brillo en un reflejo diagonal que cruza el panel
+   muy lentamente, como la luz resbalando sobre vidrio real.
+   -------------------------------------------------------------------- */
+.glass-shine-layer {
+  position: absolute;
+  inset: 0;
+  height: auto;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(
+    105deg,
+    transparent 32%,
+    rgba(190, 225, 255, 0.06) 44%,
+    rgba(225, 242, 255, 0.16) 50%,
+    rgba(190, 225, 255, 0.06) 56%,
+    transparent 68%
+  );
+  background-size: 280% 100%;
+  background-position: 160% 0;
+  animation: glassSweep 11s ease-in-out infinite;
+}
+@keyframes glassSweep {
+  0% { background-position: 160% 0; }
+  55%, 100% { background-position: -60% 0; }
+}
+
+/* Brillo superior estatico extra: una curva de luz tipo Aero en el borde
+   superior de cada panel (reflejo del "domo" de cristal). */
+.glass-panel::before {
+  background: linear-gradient(
+    180deg,
+    rgba(200, 230, 255, 0.10) 0%,
+    rgba(160, 205, 255, 0.04) 40%,
+    transparent 100%
+  );
+}
+
+/* --------------------------------------------------------------------
+   3 · TEXTO CROMADO VIDRIOSO en los titulos protagonistas
+   Relleno con degradado vertical (luz arriba, azul abajo) + glow. Da ese
+   aire de cromo liquido de los 2000 sin cambiar de tipografia.
+   -------------------------------------------------------------------- */
+.app-title,
+.np-title {
+  background: linear-gradient(
+    180deg,
+    #f4faff 0%,
+    #d8ecff 42%,
+    #a8d2ff 56%,
+    #cfe7ff 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.app-title {
+  filter: drop-shadow(0 1px 3px rgba(20, 70, 170, 0.55));
+}
+.np-title {
+  filter: drop-shadow(0 2px 14px rgba(30, 90, 200, 0.5));
+}
+
+/* --------------------------------------------------------------------
+   4 · PORTADA "AHORA SUENA" con halo + reflejo
+   -------------------------------------------------------------------- */
+.np-cover {
+  position: relative;
+}
+/* Halo de luz que respira detras de la portada. Sin crear contexto de apilado
+   propio (z-index auto en .np-cover) el ::before con z-index:-1 cae detras de
+   la portada y brilla sobre el visualizador del fondo. */
+.np-cover::before {
+  content: '';
+  position: absolute;
+  inset: -22%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(70, 150, 255, 0.35), transparent 68%);
+  filter: blur(14px);
+  animation: coverHalo 6s ease-in-out infinite;
+}
+/* Reflejo de cristal curvo en la esquina superior */
+.np-cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    140deg,
+    rgba(255, 255, 255, 0.28) 0%,
+    rgba(255, 255, 255, 0.08) 18%,
+    transparent 42%
+  );
+  pointer-events: none;
+}
+@keyframes coverHalo {
+  0%, 100% { opacity: 0.55; transform: scale(0.96); }
+  50% { opacity: 0.9; transform: scale(1.04); }
+}
+
+/* --------------------------------------------------------------------
+   5 · MICRO-ANIMACIONES DE HOVER (deslizamientos con vida)
+   -------------------------------------------------------------------- */
+
+/* Items de fuente del sidebar: se deslizan y encienden una barra de acento */
+.src-item {
+  position: relative;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    padding-left 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.src-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 0;
+  border-radius: 2px;
+  background: linear-gradient(180deg, rgba(120, 195, 255, 0.95), rgba(60, 130, 255, 0.7));
+  box-shadow: 0 0 8px rgba(80, 160, 255, 0.7);
+  transform: translateY(-50%);
+  transition: height 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.src-item:hover {
+  transform: translateX(2px);
+  padding-left: 14px;
+}
+.src-item:hover::before {
+  height: 60%;
+}
+
+/* Filas de pista: deslizan a la derecha con un realce interno al pasar */
+.track-row {
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.2s ease;
+}
+.track-row:hover {
+  transform: translateX(4px);
+  box-shadow:
+    inset 2px 0 0 rgba(120, 195, 255, 0.6),
+    0 4px 16px rgba(0, 20, 70, 0.28);
+}
+.track-row:hover .tr-cover {
+  transform: scale(1.06);
+  box-shadow: 0 4px 14px rgba(0, 20, 80, 0.45), inset 0 1px 0 rgba(190, 225, 255, 0.2);
+}
+.tr-cover {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease;
+}
+
+/* Botones de conexion: barrido de brillo al pasar el mouse */
+.connect-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(220, 240, 255, 0.22) 50%,
+    transparent 65%
+  );
+  background-size: 250% 100%;
+  background-position: 160% 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.connect-btn:hover::after {
+  opacity: 1;
+  animation: btnSweep 0.9s ease-out;
+}
+@keyframes btnSweep {
+  from { background-position: 160% 0; }
+  to { background-position: -60% 0; }
+}
+
+/* Botones del selector de visualizador: leve flote + glow al activar */
+.viz-mode {
+  transition:
+    color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.viz-mode.active {
+  animation: vizActivePulse 2.6s ease-in-out infinite;
+}
+@keyframes vizActivePulse {
+  0%, 100% { box-shadow: inset 0 1px 0 rgba(200, 235, 255, 0.28), 0 0 12px rgba(60, 140, 255, 0.4); }
+  50% { box-shadow: inset 0 1px 0 rgba(200, 235, 255, 0.32), 0 0 20px rgba(80, 165, 255, 0.7); }
+}
+
+/* Iconos de transporte: el SVG reacciona con un leve rebote al pasar */
+.ctrl-btn svg {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.ctrl-btn:hover svg {
+  transform: scale(1.16);
+}
+.ctrl-btn:active svg {
+  transform: scale(0.9);
+}
+
+/* Botones de ventana: brillo de cristal mas marcado al pasar */
+.win-btn {
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.12s ease;
+}
+.win-btn:active {
+  transform: translateY(1px);
+}
+
+/* --------------------------------------------------------------------
+   6 · ENTRADAS ESCALONADAS en listas (cascada suave)
+   Solo las primeras filas reciben retardo; las demas entran sin demora,
+   asi una lista larga no tarda en aparecer.
+   -------------------------------------------------------------------- */
+.track-row {
+  animation: rowSlideIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes rowSlideIn {
+  from { opacity: 0; transform: translateX(-14px) scale(0.99); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+.track-row:nth-child(1) { animation-delay: 0.02s; }
+.track-row:nth-child(2) { animation-delay: 0.05s; }
+.track-row:nth-child(3) { animation-delay: 0.08s; }
+.track-row:nth-child(4) { animation-delay: 0.11s; }
+.track-row:nth-child(5) { animation-delay: 0.14s; }
+.track-row:nth-child(6) { animation-delay: 0.17s; }
+.track-row:nth-child(7) { animation-delay: 0.20s; }
+.track-row:nth-child(8) { animation-delay: 0.23s; }
+.track-row:nth-child(9) { animation-delay: 0.26s; }
+.track-row:nth-child(10) { animation-delay: 0.29s; }
+.track-row:nth-child(11) { animation-delay: 0.32s; }
+.track-row:nth-child(12) { animation-delay: 0.35s; }
+
+/* --------------------------------------------------------------------
+   7 · ENTRADA DE LA VENTANA con un destello inicial
+   Un brillo que recorre la app una sola vez al abrir, sobre el windowOpen.
+   -------------------------------------------------------------------- */
+.app-window::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 40%,
+    rgba(170, 215, 255, 0.10) 50%,
+    transparent 60%
+  );
+  background-size: 220% 100%;
+  background-position: 140% 0;
+  animation: introSweep 1.5s ease-out 0.2s both;
+}
+@keyframes introSweep {
+  0% { background-position: 140% 0; opacity: 0; }
+  20% { opacity: 1; }
+  100% { background-position: -40% 0; opacity: 0; }
+}
+
+/* --------------------------------------------------------------------
+   8 · BARRA DE PROGRESO con brillo vivo cuando avanza
+   -------------------------------------------------------------------- */
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  background-size: 200% 100%;
+  animation: progressShine 2.4s linear infinite;
+}
+@keyframes progressShine {
+  from { background-position: 200% 0; }
+  to { background-position: -100% 0; }
+}
+
+/* --------------------------------------------------------------------
+   10 · BARRA DE TITULO mas vidriosa (reflejo curvo Aero)
+   -------------------------------------------------------------------- */
+.titlebar {
+  background: linear-gradient(
+    180deg,
+    rgba(58, 100, 190, 0.42) 0%,
+    rgba(34, 68, 150, 0.46) 48%,
+    rgba(20, 48, 124, 0.5) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(190, 222, 255, 0.22),
+    inset 0 -1px 0 rgba(0, 12, 45, 0.3);
+}
+.titlebar-shine {
+  height: 55%;
+  background: linear-gradient(
+    180deg,
+    rgba(210, 235, 255, 0.18) 0%,
+    rgba(170, 210, 255, 0.05) 70%,
+    transparent 100%
+  );
+  border-radius: 0 0 50% 50% / 0 0 14px 14px;
+}
+
+/* --------------------------------------------------------------------
+   11 · ESCENARIO enmarcado en cristal
+   Un borde interior luminoso y un viñeteado suave para que el visualizador
+   se sienta contenido dentro de una lamina de vidrio.
+   -------------------------------------------------------------------- */
+.stage {
+  box-shadow:
+    inset 0 1px 0 rgba(180, 215, 255, 0.10),
+    inset 0 0 0 1px rgba(90, 150, 255, 0.06),
+    inset 0 0 60px rgba(0, 10, 40, 0.45);
+}
+.stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(120% 90% at 50% 40%, transparent 60%, rgba(0, 8, 30, 0.35) 100%);
+}
+
+/* --------------------------------------------------------------------
+   12 · NOMBRE DE FUENTE (sidebar) con leve realce al pasar la seccion
+   -------------------------------------------------------------------- */
+.src-header {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.src-section:hover .src-header {
+  transform: translateX(1px);
+}
+
+/* --------------------------------------------------------------------
+   13 · RESPETO A PREFERENCIAS DE MOVIMIENTO
+   Si el usuario pidio menos animaciones a nivel sistema, las apagamos.
+   -------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .glass-shine-layer,
+  .np-cover::before,
+  .viz-mode.active,
+  .progress-fill::after,
+  .app-window::before {
+    animation: none;
+  }
+}
