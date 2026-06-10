@@ -1,9 +1,12 @@
 # Aero Player
 
+> Un proyecto de **vamp9**
+
 ![Tauri](https://img.shields.io/badge/Tauri-2-FFC131?logo=tauri&logoColor=black)
 ![Rust](https://img.shields.io/badge/Rust-1.96-000000?logo=rust&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=nodedotjs&logoColor=white)
-![Licencia](https://img.shields.io/badge/Licencia-MIT-3C82FF)
+![Licencia](https://img.shields.io/badge/Licencia-Propietaria-8A2BE2)
+![Autor](https://img.shields.io/badge/por-vamp9-FF2D8E)
 
 Media player de escritorio con estetica Windows 7 Aero "Liquid Glass". Reproduce
 tu musica local, videos de YouTube y canciones de Spotify desde una sola cola
@@ -180,4 +183,16 @@ Ver `TAURI.md` para detalles de la migracion y arquitectura.
 
 ## Licencia
 
-Distribuido bajo la licencia MIT.
+**Software propietario - Todos los derechos reservados.**
+
+Copyright (c) 2026 **vamp9** (lordvamp9).
+
+Aero Player es un proyecto personal de vamp9. El codigo se publica de forma
+visible solo con fines de transparencia y consulta. **No esta permitido**
+copiar, modificar, redistribuir, usar en otros proyectos ni presentar este
+software o su diseno como propios sin autorizacion previa y por escrito del
+autor.
+
+Para solicitar permisos de uso, abri un issue en el repositorio.
+
+Ver el archivo [LICENSE](LICENSE) para los terminos completos.

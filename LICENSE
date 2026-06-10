@@ -1,21 +1,38 @@
-MIT License
+Aero Player
+Copyright (c) 2026 vamp9 (lordvamp9). Todos los derechos reservados.
 
-Copyright (c) 2026 lordvamp9
+LICENCIA PROPIETARIA - TODOS LOS DERECHOS RESERVADOS
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Este software y su codigo fuente (en adelante, "el Software") son propiedad
+exclusiva de vamp9 (lordvamp9) (en adelante, "el Autor"). El codigo se publica
+de forma visible unicamente con fines de transparencia, demostracion y consulta.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+PERMITIDO
+  - Ver y leer el codigo fuente con fines educativos o de evaluacion personal.
+  - Ejecutar el Software para uso personal y privado.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+PROHIBIDO sin autorizacion previa, expresa y por escrito del Autor
+  - Copiar, reproducir o redistribuir el Software o partes de el.
+  - Modificar, adaptar, traducir o crear obras derivadas.
+  - Usar el Software o su codigo, total o parcialmente, en otros proyectos.
+  - Distribuir, sublicenciar, vender, alquilar o ceder el Software.
+  - Usar el Software con fines comerciales.
+  - Eliminar, ocultar o alterar los avisos de autoria, copyright o marca
+    "vamp9" presentes en el Software.
+  - Presentar el Software, su diseno, su interfaz o su codigo como propios.
+
+MARCA
+  "vamp9" es la marca personal del Autor. Ningun permiso otorgado bajo esta
+  licencia concede derecho alguno sobre dicha marca.
+
+SOLICITUD DE PERMISOS
+  Cualquier uso no contemplado en la seccion PERMITIDO requiere autorizacion
+  previa del Autor. Para solicitarla, abrir un issue en el repositorio oficial:
+  https://github.com/lordvamp9/Aero-Player
+
+EXENCION DE GARANTIA
+  EL SOFTWARE SE PROPORCIONA "TAL CUAL", SIN GARANTIA DE NINGUN TIPO, EXPRESA O
+  IMPLICITA, INCLUYENDO PERO SIN LIMITARSE A LAS GARANTIAS DE COMERCIABILIDAD,
+  IDONEIDAD PARA UN PROPOSITO PARTICULAR Y NO INFRACCION. EN NINGUN CASO EL
+  AUTOR SERA RESPONSABLE DE NINGUNA RECLAMACION, DANO U OTRA RESPONSABILIDAD
+  DERIVADA DEL USO O LA IMPOSIBILIDAD DE USO DEL SOFTWARE.

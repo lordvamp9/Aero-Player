@@ -29,8 +29,8 @@
   "bundle": {
     "active": true,
     "targets": ["nsis"],
-    "publisher": "lordvamp9",
-    "copyright": "Copyright (c) 2025 lordvamp9",
+    "publisher": "vamp9",
+    "copyright": "Copyright (c) 2026 vamp9 (lordvamp9). Todos los derechos reservados.",
     "category": "Music",
     "shortDescription": "Reproductor de musica Aero Liquid Glass",
     "longDescription": "Media player de escritorio con estetica Windows 7 Aero. Reproduce musica local, YouTube y Spotify desde una sola cola unificada con visualizador de audio en tiempo real.",
