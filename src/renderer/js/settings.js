@@ -76,6 +76,9 @@ export function initSettings(context) {
     if (typeof ctx.openSetup === 'function') ctx.openSetup()
   })
 
+  // Temas de color
+  initThemes()
+
   // Refresca el estado de cuentas cuando algo cambie en cualquier modulo
   ctx.on('youtube-auth', refreshAccounts)
   ctx.on('spotify-auth', refreshAccounts)
@@ -556,4 +559,39 @@ async function loadEqFromStore() {
 
 function persistEq() {
   ctx.aero.storeSet('eq', { enabled: eqEnabled, gains: eqGains })
+}
+
+// ---------------------------------------------------------------------
+// Temas de color (original / rosa pastel / oscuro)
+// El tema se aplica via data-theme en <html>. Un script en linea del <head>
+// ya lo fija al arrancar desde localStorage (sin parpadeo); aqui solo se
+// gestiona el cambio desde el panel de Ajustes.
+// ---------------------------------------------------------------------
+const THEMES = ['original', 'pink', 'dark']
+
+function initThemes() {
+  const wrap = document.getElementById('theme-options')
+  if (!wrap) return
+  const current = document.documentElement.getAttribute('data-theme') || 'original'
+  highlightTheme(current)
+  wrap.querySelectorAll('.theme-opt').forEach((btn) => {
+    btn.addEventListener('click', () => applyTheme(btn.dataset.theme))
+  })
+}
+
+function applyTheme(name) {
+  if (!THEMES.includes(name)) name = 'original'
+  if (name === 'original') document.documentElement.removeAttribute('data-theme')
+  else document.documentElement.setAttribute('data-theme', name)
+  try { localStorage.setItem('aero-theme', name) } catch {}
+  try { ctx.aero.storeSet('theme', name) } catch {}
+  highlightTheme(name)
+}
+
+function highlightTheme(name) {
+  const wrap = document.getElementById('theme-options')
+  if (!wrap) return
+  wrap.querySelectorAll('.theme-opt').forEach((b) => {
+    b.classList.toggle('active', b.dataset.theme === name)
+  })
 }

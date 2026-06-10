@@ -16,6 +16,16 @@
     <link rel="stylesheet" href="./styles/playlists.css" />
     <link rel="stylesheet" href="./styles/settings.css" />
     <link rel="stylesheet" href="./styles/aero-fx.css" />
+    <link rel="stylesheet" href="./styles/themes.css" />
+    <script>
+      /* Aplica el tema guardado antes del primer pintado (sin parpadeo). */
+      try {
+        var aeroTheme = localStorage.getItem('aero-theme')
+        if (aeroTheme && aeroTheme !== 'original') {
+          document.documentElement.setAttribute('data-theme', aeroTheme)
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div class="app-window" id="app-window">
@@ -422,6 +432,25 @@
                 <span>Credenciales OAuth <em>Client ID + Secret de Google / Spotify</em></span>
               </span>
               <button class="settings-btn" id="btn-open-setup">Configuracion inicial</button>
+            </div>
+          </section>
+
+          <!-- Bloque: Temas -->
+          <section class="settings-section">
+            <h3>Temas</h3>
+            <div class="theme-options" id="theme-options">
+              <button class="theme-opt" data-theme="original" title="Tema original (azul)">
+                <span class="theme-swatch theme-swatch-original"></span>
+                <span class="theme-label">Original</span>
+              </button>
+              <button class="theme-opt" data-theme="pink" title="Rosa pastel">
+                <span class="theme-swatch theme-swatch-pink"></span>
+                <span class="theme-label">Rosa pastel</span>
+              </button>
+              <button class="theme-opt" data-theme="dark" title="Modo oscuro">
+                <span class="theme-swatch theme-swatch-dark"></span>
+                <span class="theme-label">Oscuro</span>
+              </button>
             </div>
           </section>
 

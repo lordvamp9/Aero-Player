@@ -42,11 +42,22 @@ let beatEnvelope = 0    // 0..1, decae tras cada kick
 let beatHoldoff = 0     // frames de espera para no doblar el kick
 let smoothEnergy = 0    // energia general suavizada (para visibilidad continua)
 
+// --- Efectos "rave" (reaccion exagerada al beat) -----------------------
+let beatFlash = 0       // 0..1, destello que cae rapido en cada golpe
+let zoomPulse = 0       // golpe de zoom de toda la escena
+let flashHue = 200      // tono del destello, rota en cada beat
+let reduceMotion = false // respeta la preferencia del sistema
+
 export function initVisualizer(context) {
   ctx = context
   canvas = ctx.els.canvas
   g = canvas.getContext('2d', { alpha: true })
   mode = ctx.state.visualizerMode || 'liquid'
+  try {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    reduceMotion = mq.matches
+    mq.addEventListener('change', (e) => { reduceMotion = e.matches })
+  } catch {}
 
   resize()
   window.addEventListener('resize', resize)
@@ -267,22 +278,31 @@ function getPulse(freq) {
   const threshold = bassEMA + Math.max(0.05, std * 1.6)
 
   // Energia general suavizada (sin saltos bruscos)
-  smoothEnergy += (raw - smoothEnergy) * 0.18
+  smoothEnergy += (raw - smoothEnergy) * 0.2
 
-  // Decae el envelope del beat anterior
-  beatEnvelope *= 0.88
+  // Decae el envelope del beat anterior (caida mas rapida = mas "rave")
+  beatEnvelope *= 0.85
+  beatFlash *= 0.78
   if (beatHoldoff > 0) beatHoldoff--
 
-  // Detecta nuevo beat
-  if (raw > threshold && raw > 0.18 && beatHoldoff === 0) {
-    beatEnvelope = Math.min(1, beatEnvelope + 0.85)
-    beatHoldoff = 8 // ~130ms a 60fps, evita doblar el mismo golpe
+  // Detecta nuevo beat. Umbral mas sensible y gate mas bajo: dispara con
+  // mas frecuencia para una reaccion exagerada.
+  if (raw > threshold && raw > 0.14 && beatHoldoff === 0) {
+    beatEnvelope = 1
+    beatFlash = 1
+    beatHoldoff = 6 // ~100ms, permite golpes mas seguidos
+    flashHue = (flashHue + 45 + Math.random() * 70) % 360
   }
+
+  // Zoom de escena: persigue la mezcla de energia + kick con respuesta rapida.
+  const zTarget = smoothEnergy * 0.5 + beatEnvelope * 0.6
+  zoomPulse += (zTarget - zoomPulse) * 0.35
 
   return {
     energy: smoothEnergy,
     kick: beatEnvelope,
-    pulse: smoothEnergy * 0.6 + beatEnvelope * 0.55,
+    // pulse mas pronunciado para que todo "respire" con mas fuerza
+    pulse: smoothEnergy * 0.7 + beatEnvelope * 0.75,
     raw,
   }
 }
@@ -291,41 +311,82 @@ function getPulse(freq) {
 // Dibujo principal
 // ---------------------------------------------------------------------
 function draw() {
+  g.setTransform(dpr, 0, 0, dpr, 0, 0)
   g.globalAlpha = 1
+
+  // 1) Fondo / estela en transform base (siempre cubre toda la escena)
   switch (mode) {
-    case 'spectrum':
-      clearBackground()
-      g.globalAlpha = fade
-      drawSpectrum()
-      break
-    case 'waveform':
-      trail(0.18)
-      g.globalAlpha = fade
-      drawWaveform()
-      break
-    case 'orbital':
-      trail(0.14)
-      g.globalAlpha = fade
-      drawOrbital()
-      break
-    case 'aurora':
-      trail(0.13)
-      g.globalAlpha = fade
-      drawAurora()
-      break
-    case 'radial':
-      clearBackground()
-      g.globalAlpha = fade
-      drawRadial()
-      break
-    case 'liquid':
-    default:
-      clearBackground()
-      g.globalAlpha = fade
-      drawLiquid()
-      break
+    case 'waveform': trail(0.18); break
+    case 'orbital': trail(0.14); break
+    case 'aurora': trail(0.13); break
+    default: clearBackground(); break // spectrum, radial, liquid
   }
+
+  // 2) Contenido del modo con golpe de zoom centrado en cada beat
+  const z = reduceMotion ? 1 : 1 + zoomPulse * 0.05 + beatFlash * 0.04
+  g.save()
+  if (z !== 1) {
+    g.translate(width / 2, height / 2)
+    g.scale(z, z)
+    g.translate(-width / 2, -height / 2)
+  }
+  g.globalAlpha = fade
+  switch (mode) {
+    case 'spectrum': drawSpectrum(); break
+    case 'waveform': drawWaveform(); break
+    case 'orbital': drawOrbital(); break
+    case 'aurora': drawAurora(); break
+    case 'radial': drawRadial(); break
+    default: drawLiquid(); break
+  }
+  g.restore()
+
+  // 3) Destello de beat aditivo sobre todo (sensacion de club/rave)
   g.globalAlpha = 1
+  drawBeatFlash()
+}
+
+// Destello que tine la escena en cada golpe, con un tono que rota. Aditivo
+// y de baja opacidad para dar energia sin convertirse en un estrobo agresivo.
+function drawBeatFlash() {
+  if (reduceMotion || beatFlash < 0.03) return
+  const [r, gg, b] = hueToRgb(flashHue)
+  const a = beatFlash * 0.13
+  g.globalCompositeOperation = 'lighter'
+  const grad = g.createRadialGradient(
+    width / 2, height * 0.55, 0,
+    width / 2, height * 0.55, Math.max(width, height) * 0.78
+  )
+  grad.addColorStop(0, `rgba(${r}, ${gg}, ${b}, ${a})`)
+  grad.addColorStop(0.6, `rgba(${r}, ${gg}, ${b}, ${a * 0.35})`)
+  grad.addColorStop(1, `rgba(${r}, ${gg}, ${b}, 0)`)
+  g.fillStyle = grad
+  g.fillRect(0, 0, width, height)
+  // Aro de luz en los bordes (vignette invertido) para el golpe fuerte
+  if (beatFlash > 0.5) {
+    g.strokeStyle = `rgba(${r}, ${gg}, ${b}, ${(beatFlash - 0.5) * 0.4})`
+    g.lineWidth = 3 + beatFlash * 4
+    g.strokeRect(2, 2, width - 4, height - 4)
+  }
+  g.globalCompositeOperation = 'source-over'
+}
+
+// Tono (0..360) -> rgb brillante (s=0.85, l=0.62). Suficiente para los flashes.
+function hueToRgb(h) {
+  const s = 0.85
+  const l = 0.62
+  const c = (1 - Math.abs(2 * l - 1)) * s
+  const hp = (h % 360) / 60
+  const x = c * (1 - Math.abs((hp % 2) - 1))
+  let r = 0, g1 = 0, b = 0
+  if (hp < 1) { r = c; g1 = x }
+  else if (hp < 2) { r = x; g1 = c }
+  else if (hp < 3) { g1 = c; b = x }
+  else if (hp < 4) { g1 = x; b = c }
+  else if (hp < 5) { r = x; b = c }
+  else { r = c; b = x }
+  const m = l - c / 2
+  return [Math.round((r + m) * 255), Math.round((g1 + m) * 255), Math.round((b + m) * 255)]
 }
 
 // Fondo solido con leve gradiente (modos sin estela)
@@ -378,9 +439,9 @@ function drawLiquid() {
 
   layers.forEach((L, li) => {
     // Cada capa engancha distinto al beat: las del fondo responden mas que
-    // las cercanas, lo que da sensacion de profundidad pulsante.
-    const beatBoost = 1 + energy * 0.9 + kick * (0.4 + li * 0.18)
-    const baseY = height * L.base - kick * 6 * (li + 1) * 0.5
+    // las cercanas. Reaccion amplificada para un latido mucho mas marcado.
+    const beatBoost = 1 + energy * 1.5 + kick * (0.7 + li * 0.28)
+    const baseY = height * L.base - kick * 13 * (li + 1) * 0.5
     g.beginPath()
     g.moveTo(0, height)
     for (let x = 0; x <= width; x += 6) {
@@ -573,9 +634,11 @@ function drawSpectrum() {
     let v = 0
     for (let j = 0; j < step; j++) v += freq[i * step + j]
     v = v / step / 255
-    v = Math.pow(v, 1.05)
-    let h = Math.min(headroom, v * headroom * (1.05 + kick * 0.55 + energy * 0.25))
-    specSmooth[i] += (h - specSmooth[i]) * (h > specSmooth[i] ? 0.5 : 0.16)
+    v = Math.pow(v, 1.02)
+    // Reaccion exagerada: el beat "abre" las barras con mucha mas fuerza.
+    let h = Math.min(headroom, v * headroom * (1.1 + kick * 1.2 + energy * 0.55))
+    // Ataque casi instantaneo (0.62) para que salten; caida algo mas viva.
+    specSmooth[i] += (h - specSmooth[i]) * (h > specSmooth[i] ? 0.62 : 0.2)
     h = specSmooth[i]
     const x = i * (barW + gap)
     const top = mid - h
@@ -599,12 +662,12 @@ function drawSpectrum() {
 
   // PASADA 2: glow + picos en una sola tanda con la sombra encendida una vez.
   // Agrupar el trabajo con sombra evita prender/apagar el shadowBlur 200 veces.
-  g.shadowColor = 'rgba(120, 195, 255, 0.8)'
-  g.shadowBlur = 12 + kick * 12
-  g.fillStyle = `rgba(225, 242, 255, ${0.9 + kick * 0.1})`
+  g.shadowColor = 'rgba(130, 200, 255, 0.9)'
+  g.shadowBlur = 14 + kick * 26
+  g.fillStyle = `rgba(228, 244, 255, ${0.9 + kick * 0.1})`
   for (let i = 0; i < bars; i++) {
     const x = i * (barW + gap)
-    g.fillRect(x, mid - peaks[i] - 2, barW, 2.4)
+    g.fillRect(x, mid - peaks[i] - 2, barW, 2.4 + kick * 1.5)
   }
   g.shadowBlur = 0
 
@@ -629,12 +692,13 @@ function drawWaveform() {
   g.fillStyle = tunnel
   g.fillRect(0, 0, width, height)
 
-  // Amplitud aumenta con la energia; las capas externas marcan el latido
-  const amp = height * (0.32 + pulse * 0.18)
+  // Amplitud aumenta con la energia; las capas externas marcan el latido.
+  // Reaccion amplificada: la onda salta mucho mas en cada golpe.
+  const amp = height * (0.3 + pulse * 0.4)
   const layers = [
-    { off: -14 - kick * 6, w: 1.2, a: 0.35 + pulse * 0.25 },
-    { off: 14 + kick * 6, w: 1.2, a: 0.35 + pulse * 0.25 },
-    { off: 0, w: 2.6 + kick * 1.6, a: 1 }, // capa central mas gruesa con glow
+    { off: -14 - kick * 14, w: 1.2, a: 0.35 + pulse * 0.35 },
+    { off: 14 + kick * 14, w: 1.2, a: 0.35 + pulse * 0.35 },
+    { off: 0, w: 2.6 + kick * 3, a: 1 }, // capa central mas gruesa con glow
   ]
 
   layers.forEach((L) => {
@@ -685,8 +749,8 @@ function drawOrbital() {
   const cx = width / 2
   const cy = height / 2
 
-  // Nucleo brillante que late con el bass + cada kick lo hincha
-  const coreR = 18 + energy * 60 + kick * 40
+  // Nucleo brillante que late con el bass + cada kick lo hincha (exagerado)
+  const coreR = 18 + energy * 85 + kick * 75
   const core = g.createRadialGradient(cx, cy, 0, cx, cy, coreR)
   core.addColorStop(0, `rgba(180, 220, 255, ${0.5 + energy * 0.4})`)
   core.addColorStop(1, 'rgba(40, 110, 235, 0)')
@@ -696,10 +760,10 @@ function drawOrbital() {
   g.fill()
 
   orbiters.forEach((o, i) => {
-    o.angle += o.speed * (1 + energy * 2)
-    // El bass dispersa las particulas hacia afuera
-    const target = o.baseRadius * (1 + energy * 1.6)
-    o.radius += (target - o.radius) * 0.08
+    o.angle += o.speed * (1 + energy * 3 + kick * 1.6)
+    // El bass dispersa las particulas hacia afuera; el kick las patea fuerte.
+    const target = o.baseRadius * (1 + energy * 2.6 + kick * 0.7)
+    o.radius += (target - o.radius) * 0.13
     const x = cx + Math.cos(o.angle) * o.radius
     const y = cy + Math.sin(o.angle) * o.radius * 0.7 // orbita eliptica
 
@@ -772,10 +836,11 @@ function drawAurora() {
   const stepY = 16
 
   auroraBands.forEach((b) => {
-    b.phase += b.speed * (1 + energy * 1.6)
+    b.phase += b.speed * (1 + energy * 2.6 + kick * 1.2)
     const fv = freq[b.bin % freq.length] / 255
-    const amp = width * (0.05 + fv * 0.08 + kick * 0.03)
-    const cx = b.x * width + Math.sin(b.phase * 0.7) * width * 0.06
+    // Cortinas que ondulan mucho mas fuerte con la musica.
+    const amp = width * (0.05 + fv * 0.14 + kick * 0.07)
+    const cx = b.x * width + Math.sin(b.phase * 0.7) * width * (0.06 + kick * 0.04)
     const halfW = width * (0.05 + 0.025 * Math.sin(b.phase * 1.3)) + amp * 0.4
     const [r, gg, bl] = b.col
     const alpha = 0.1 + fv * 0.22 + pulse * 0.12
@@ -860,10 +925,10 @@ function drawRadial() {
   for (let i = 0; i < half; i++) {
     let v = 0
     for (let j = 0; j < step; j++) v += freq[i * step + j]
-    v = Math.pow(v / step / 255, 1.05)
-    let len = v * maxLen * (1 + kick * 0.5 + energy * 0.25)
-    // Suavizado para estabilidad (igual que el espectro lineal)
-    radialSmooth[i] += (len - radialSmooth[i]) * (len > radialSmooth[i] ? 0.5 : 0.18)
+    v = Math.pow(v / step / 255, 1.02)
+    // Barras radiales que estallan hacia afuera en cada golpe.
+    let len = v * maxLen * (1 + kick * 1.2 + energy * 0.5)
+    radialSmooth[i] += (len - radialSmooth[i]) * (len > radialSmooth[i] ? 0.62 : 0.22)
     len = radialSmooth[i]
 
     // Color: graves claros-calidos -> agudos cian brillante
