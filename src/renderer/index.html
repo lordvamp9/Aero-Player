@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' aeromedia: http://asset.localhost https://asset.localhost data: blob: https://www.youtube.com https://*.ytimg.com https://i.scdn.co https://*.spotifycdn.com; img-src 'self' data: blob: https: aeromedia: http://asset.localhost https://asset.localhost; media-src 'self' aeromedia: http://asset.localhost https://asset.localhost blob: data: https:; script-src 'self' 'unsafe-inline' https://www.youtube.com https://s.ytimg.com https://sdk.scdn.co; style-src 'self' 'unsafe-inline'; frame-src https://www.youtube.com https://sdk.scdn.co https://accounts.spotify.com; connect-src 'self' ipc: http://ipc.localhost http://asset.localhost https://asset.localhost https: wss:;"
+    />
+    <title>Aero Player</title>
+    <link rel="stylesheet" href="./styles/main.css" />
+    <link rel="stylesheet" href="./styles/glass.css" />
+    <link rel="stylesheet" href="./styles/animations.css" />
+    <link rel="stylesheet" href="./styles/sidebar.css" />
+    <link rel="stylesheet" href="./styles/player.css" />
+    <link rel="stylesheet" href="./styles/playlists.css" />
+    <link rel="stylesheet" href="./styles/settings.css" />
+    <link rel="stylesheet" href="./styles/aero-fx.css" />
+    <link rel="stylesheet" href="./styles/themes.css" />
+    <script>
+      /* Aplica el tema guardado antes del primer pintado (sin parpadeo). */
+      try {
+        var aeroTheme = localStorage.getItem('aero-theme')
+        if (aeroTheme && aeroTheme !== 'original') {
+          document.documentElement.setAttribute('data-theme', aeroTheme)
+        }
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div class="app-window" id="app-window">
+      <!-- ===================== BARRA DE TITULO ===================== -->
+      <header class="titlebar" data-tauri-drag-region>
+        <div class="titlebar-shine" data-tauri-drag-region></div>
+        <div class="titlebar-left">
+          <div class="app-glyph" aria-hidden="true">
+            <svg viewBox="0 0 32 32" width="18" height="18">
+              <defs>
+                <radialGradient id="discGrad" cx="50%" cy="40%" r="60%">
+                  <stop offset="0%" stop-color="#bfe0ff" />
+                  <stop offset="45%" stop-color="#3f86ff" />
+                  <stop offset="100%" stop-color="#0a2a78" />
+                </radialGradient>
+              </defs>
+              <circle cx="16" cy="16" r="14" fill="url(#discGrad)" stroke="rgba(180,220,255,.5)" stroke-width="1" />
+              <circle cx="16" cy="16" r="4.2" fill="#06122b" stroke="rgba(160,200,255,.6)" stroke-width="1" />
+              <circle cx="16" cy="16" r="1.4" fill="#bfe0ff" />
+            </svg>
+          </div>
+          <span class="app-title">Aero Player&nbsp;&nbsp;&#x22C6;&#x2727;&#x22C6;</span>
+        </div>
+
+        <div class="titlebar-right">
+          <button class="titlebar-profile" id="titlebar-profile" title="Mi perfil" aria-label="Mi perfil">
+            <span class="tp-avatar" id="tp-avatar"></span>
+            <span class="tp-name" id="tp-name">Invitado</span>
+          </button>
+          <button class="titlebar-gear" id="btn-settings" title="Ajustes" aria-label="Ajustes">
+            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+              <path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+                d="M12 9.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6zM19.4 12c0-.45-.04-.88-.1-1.3l2.04-1.55-2-3.46-2.4.9a7.4 7.4 0 0 0-2.24-1.3l-.36-2.55h-4l-.36 2.55c-.82.3-1.57.74-2.24 1.3l-2.4-.9-2 3.46L4.7 10.7c-.06.42-.1.85-.1 1.3s.04.88.1 1.3L2.66 14.85l2 3.46 2.4-.9c.67.56 1.42 1 2.24 1.3l.36 2.55h4l.36-2.55c.82-.3 1.57-.74 2.24-1.3l2.4.9 2-3.46-2.04-1.55c.06-.42.1-.85.1-1.3z" />
+            </svg>
+          </button>
+          <button class="win-btn win-btn-min" id="btn-min" title="Minimizar" aria-label="Minimizar">
+            <span class="win-glyph">&#x2014;</span>
+          </button>
+          <button class="win-btn win-btn-max" id="btn-max" title="Maximizar" aria-label="Maximizar">
+            <span class="win-glyph">&#x25A1;</span>
+          </button>
+          <button class="win-btn win-btn-close" id="btn-close" title="Cerrar" aria-label="Cerrar">
+            <span class="win-glyph">&#x2715;</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- ===================== CUERPO PRINCIPAL ===================== -->
+      <div class="main-layout">
+        <!-- --------------------- SIDEBAR --------------------- -->
+        <aside class="sidebar glass-panel">
+          <div class="glass-shine-layer"></div>
+
+          <!-- Busqueda global -->
+          <div class="sidebar-search">
+            <span class="search-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="14" height="14">
+                <path
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  d="M10.5 3a7.5 7.5 0 1 0 4.7 13.35l4.22 4.22M10.5 3a7.5 7.5 0 0 1 4.95 13.13"
+                />
+              </svg>
+            </span>
+            <input id="global-search" type="text" placeholder="Buscar en todas las fuentes..." spellcheck="false" />
+          </div>
+
+          <div class="sidebar-scroll">
+            <!-- Seccion YouTube -->
+            <section class="src-section" data-source="youtube">
+              <div class="src-header">
+                <span class="src-logo">
+                  <svg viewBox="0 0 24 24" width="20" height="20">
+                    <path
+                      fill="#FF0000"
+                      d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"
+                    />
+                  </svg>
+                </span>
+                <span class="src-name">YouTube</span>
+                <span class="src-status" id="yt-status-dot"></span>
+              </div>
+              <div class="src-body" id="yt-body">
+                <button class="connect-btn connect-yt" id="btn-connect-yt">
+                  <svg viewBox="0 0 24 24" width="16" height="16">
+                    <path
+                      fill="#FF0000"
+                      d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"
+                    />
+                  </svg>
+                  <span>Conectar YouTube</span>
+                </button>
+                <ul class="src-list" id="yt-list" hidden>
+                  <li class="src-item" data-yt="liked"><span class="dot"></span>Me gusta</li>
+                  <li class="src-item" data-yt="watchlater"><span class="dot"></span>Ver mas tarde</li>
+                  <li class="src-item" data-yt="playlists"><span class="dot"></span>Mis playlists</li>
+                </ul>
+              </div>
+            </section>
+
+            <!-- Seccion Spotify -->
+            <section class="src-section" data-source="spotify">
+              <div class="src-header">
+                <span class="src-logo">
+                  <svg viewBox="0 0 24 24" width="20" height="20">
+                    <path
+                      fill="#1DB954"
+                      d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"
+                    />
+                  </svg>
+                </span>
+                <span class="src-name">Spotify</span>
+                <span class="src-status" id="sp-status-dot"></span>
+              </div>
+              <div class="src-body" id="sp-body">
+                <button class="connect-btn connect-sp" id="btn-connect-sp">
+                  <svg viewBox="0 0 24 24" width="16" height="16">
+                    <path
+                      fill="#1DB954"
+                      d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"
+                    />
+                  </svg>
+                  <span>Conectar Spotify</span>
+                </button>
+                <ul class="src-list" id="sp-list" hidden>
+                  <li class="src-item" data-sp="saved"><span class="dot"></span>Canciones guardadas</li>
+                  <li class="src-item" data-sp="playlists"><span class="dot"></span>Mis playlists</li>
+                  <li class="src-item" data-sp="albums"><span class="dot"></span>Albumes guardados</li>
+                </ul>
+              </div>
+            </section>
+
+            <!-- Seccion Biblioteca (Local + Playlists propias) -->
+            <section class="src-section" data-source="local">
+              <div class="src-header">
+                <span class="src-logo folder">
+                  <svg viewBox="0 0 24 24" width="18" height="18">
+                    <path
+                      fill="rgba(120,180,255,.9)"
+                      d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"
+                    />
+                    <path fill="rgba(180,220,255,.35)" d="M10 4H4a2 2 0 0 0-2 2v2h20V8a2 2 0 0 0-2-2h-8l-2-2z" />
+                  </svg>
+                </span>
+                <span class="src-name">Biblioteca</span>
+              </div>
+              <div class="src-body">
+                <ul class="src-list">
+                  <li class="src-item active" data-local="all"><span class="dot"></span>Local</li>
+                  <li class="src-item" data-section="playlists"><span class="dot"></span>Mis playlists</li>
+                </ul>
+                <button class="add-folder-btn" id="btn-add-folder">
+                  <svg viewBox="0 0 24 24" width="14" height="14">
+                    <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 5v14M5 12h14" />
+                  </svg>
+                  <span>Agregar carpeta</span>
+                </button>
+              </div>
+              <!-- Lista de playlists propias del usuario -->
+              <ul class="my-playlists" id="my-playlists" hidden></ul>
+              <div class="my-playlists-empty" id="my-playlists-empty" hidden>
+                Sin playlists. Click derecho para crear una.
+              </div>
+            </section>
+          </div>
+
+          <!-- Cola de reproduccion -->
+          <div class="queue-block">
+            <div class="queue-head">
+              <span class="queue-title">Cola de reproduccion</span>
+              <span class="queue-count" id="queue-count">0</span>
+            </div>
+            <ul class="queue-list" id="queue-list"></ul>
+            <div class="queue-empty" id="queue-empty">La cola esta vacia. Agrega canciones desde tu biblioteca.</div>
+          </div>
+        </aside>
+
+        <!-- --------------------- ESCENARIO / CONTENIDO --------------------- -->
+        <main class="stage">
+          <canvas id="visualizer" class="visualizer-canvas"></canvas>
+
+          <!-- Capa de ahora suena (vista por defecto) -->
+          <section class="now-playing" id="now-playing-view">
+            <div class="np-cover" id="np-cover" hidden></div>
+            <div class="np-meta">
+              <div class="np-title" id="np-title">Aero Player</div>
+              <div class="np-artist" id="np-artist">Selecciona una pista para comenzar</div>
+            </div>
+          </section>
+
+          <!-- Capa de listas (biblioteca / playlists / resultados) -->
+          <section class="list-view glass-panel" id="list-view" hidden>
+            <div class="glass-shine-layer"></div>
+            <div class="list-view-head">
+              <h2 class="list-view-title" id="list-view-title">Toda la musica</h2>
+              <span class="list-view-count" id="list-view-count"></span>
+              <button class="list-view-close" id="list-view-close" title="Volver al visualizador">
+                <svg viewBox="0 0 24 24" width="14" height="14">
+                  <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              </button>
+            </div>
+            <div class="list-view-body" id="list-view-body"></div>
+          </section>
+
+          <!-- Selector de modo de visualizador -->
+          <div class="viz-selector glass-panel" id="viz-selector">
+            <div class="glass-shine-layer"></div>
+            <button class="viz-mode active" data-mode="liquid" title="Ondas liquidas">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                  d="M2 14c2.5-3 4-3 6 0s3.5 3 6 0 4-3 6 0M2 9c2.5-3 4-3 6 0s3.5 3 6 0 4-3 6 0" />
+              </svg>
+            </button>
+            <button class="viz-mode" data-mode="spectrum" title="Espectro de frecuencias">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <g fill="currentColor">
+                  <rect x="3" y="9" width="2.6" height="11" rx="1" />
+                  <rect x="8" y="5" width="2.6" height="15" rx="1" />
+                  <rect x="13" y="11" width="2.6" height="9" rx="1" />
+                  <rect x="18" y="7" width="2.6" height="13" rx="1" />
+                </g>
+              </svg>
+            </button>
+            <button class="viz-mode" data-mode="waveform" title="Forma de onda">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                  d="M2 12c1.5 0 1.5-7 3-7s1.5 14 3 14 1.5-11 3-11 1.5 7 3 7 1.5-5 3-5 1.5 3 2 3" />
+              </svg>
+            </button>
+            <button class="viz-mode" data-mode="orbital" title="Particulas orbitales">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <g fill="none" stroke="currentColor" stroke-width="1.6">
+                  <ellipse cx="12" cy="12" rx="9" ry="4" />
+                  <ellipse cx="12" cy="12" rx="4" ry="9" />
+                </g>
+                <circle cx="12" cy="12" r="2.2" fill="currentColor" />
+              </svg>
+            </button>
+            <button class="viz-mode" data-mode="aurora" title="Aurora">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+                  d="M5 21c-1-5 .5-12 2-15 1.2 5 1.2 10 .6 15M12 21c-1-6 .4-13 2-16.5 1.3 5.5 1.3 11 .5 16.5M19 21c-.8-4 .3-9 1.3-11.5" />
+              </svg>
+            </button>
+            <button class="viz-mode" data-mode="radial" title="Espectro radial">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+                  <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" />
+                </g>
+                <circle cx="12" cy="12" r="2.4" fill="currentColor" />
+              </svg>
+            </button>
+            <span class="viz-sep" aria-hidden="true"></span>
+            <button class="viz-mode viz-fullscreen-btn" id="btn-viz-fullscreen" title="Pantalla completa (Esc para salir)">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"
+                  d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4" />
+              </svg>
+            </button>
+          </div>
+        </main>
+      </div>
+
+      <!-- ===================== PANEL DE CONTROLES ===================== -->
+      <footer class="player-bar glass-panel">
+        <div class="glass-shine-layer"></div>
+
+        <!-- Barra de progreso -->
+        <div class="progress-row">
+          <span class="time time-current" id="time-current">0:00</span>
+          <div class="progress-rail" id="progress-rail">
+            <div class="progress-fill" id="progress-fill"></div>
+            <div class="progress-knob" id="progress-knob"></div>
+          </div>
+          <span class="time time-total" id="time-total">0:00</span>
+        </div>
+
+        <!-- Controles -->
+        <div class="controls-row">
+          <div class="np-mini" id="np-mini">
+            <div class="np-mini-cover" id="np-mini-cover"></div>
+            <div class="np-mini-text">
+              <span class="np-mini-title" id="np-mini-title">Sin reproduccion</span>
+              <span class="np-mini-artist" id="np-mini-artist">Aero Player</span>
+            </div>
+          </div>
+
+          <div class="transport">
+            <button class="ctrl-btn" id="btn-shuffle" title="Aleatorio">
+              <svg viewBox="0 0 24 24" width="18" height="18">
+                <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                  d="M16 3h5v5M21 3l-7 7M16 21h5v-5M21 21l-7-7M3 7l4 4M3 17l11-11" />
+              </svg>
+            </button>
+            <button class="ctrl-btn" id="btn-prev" title="Anterior">
+              <svg viewBox="0 0 24 24" width="20" height="20">
+                <path fill="currentColor" d="M6 5h2v14H6zM20 5v14L9 12z" />
+              </svg>
+            </button>
+            <button class="ctrl-btn play-btn" id="btn-play" title="Reproducir" aria-label="Reproducir">
+              <svg class="icon-play" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                <path fill="currentColor" d="M8.4 5.3v13.4c0 .55.62.86 1.06.53l9.9-6.7a.64.64 0 0 0 0-1.06L9.46 4.77a.64.64 0 0 0-1.06.53z" />
+              </svg>
+              <svg class="icon-pause" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                <rect x="6.8" y="5" width="3.4" height="14" rx="1.1" fill="currentColor" />
+                <rect x="13.8" y="5" width="3.4" height="14" rx="1.1" fill="currentColor" />
+              </svg>
+            </button>
+            <button class="ctrl-btn" id="btn-next" title="Siguiente">
+              <svg viewBox="0 0 24 24" width="20" height="20">
+                <path fill="currentColor" d="M16 5h2v14h-2zM4 5l11 7L4 19z" />
+              </svg>
+            </button>
+            <button class="ctrl-btn" id="btn-repeat" title="Repetir">
+              <svg viewBox="0 0 24 24" width="18" height="18">
+                <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                  d="M17 2l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="right-cluster">
+            <button class="ctrl-btn vol-icon" id="btn-mute" title="Silenciar">
+              <svg viewBox="0 0 24 24" width="18" height="18" id="vol-icon-svg">
+                <path fill="currentColor" d="M4 9v6h4l5 5V4L8 9H4z" />
+                <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" />
+              </svg>
+            </button>
+            <div class="volume-rail" id="volume-rail">
+              <div class="volume-fill" id="volume-fill"></div>
+              <div class="volume-knob" id="volume-knob"></div>
+            </div>
+          </div>
+        </div>
+      </footer>
+
+      <!-- ===================== BARRA DE ESTADO ===================== -->
+      <div class="statusbar">
+        <span class="status-left" id="status-left">Cola: 0 canciones &middot; 0 fuentes &middot; 0:00 duracion total</span>
+        <span class="status-center" id="status-center">Aero Player listo</span>
+        <span class="status-right" id="status-right">&mdash;</span>
+      </div>
+    </div>
+
+    <!-- Contenedor de notificaciones toast -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Menu contextual glass -->
+    <div class="context-menu glass-panel" id="context-menu" hidden>
+      <div class="glass-shine-layer"></div>
+    </div>
+
+    <!-- ===================== PANEL DE AJUSTES ===================== -->
+    <div class="settings-overlay" id="settings-overlay" hidden>
+      <div class="settings-panel glass-panel" id="settings-panel" role="dialog" aria-label="Ajustes">
+        <div class="glass-shine-layer"></div>
+        <header class="settings-head">
+          <h2>Ajustes</h2>
+          <button class="settings-close" id="settings-close" title="Cerrar" aria-label="Cerrar">
+            <svg viewBox="0 0 24 24" width="14" height="14">
+              <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </header>
+
+        <div class="settings-body">
+          <!-- Bloque: Perfil -->
+          <section class="settings-section">
+            <h3>Perfil</h3>
+            <div class="settings-row settings-profile-row">
+              <span class="settings-profile-avatar" id="settings-profile-avatar"></span>
+              <div class="settings-profile-meta">
+                <span class="settings-profile-name" id="settings-profile-name">Invitado</span>
+                <span class="settings-profile-hint">Tu identidad dentro de Aero Player.</span>
+              </div>
+              <button class="settings-btn" id="btn-edit-profile">Modificar perfil</button>
+            </div>
+          </section>
+
+          <!-- Bloque: Cuentas -->
+          <section class="settings-section">
+            <h3>Cuentas conectadas</h3>
+            <div class="settings-row">
+              <span class="settings-account">
+                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="#FF0000" d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                <span>YouTube <em id="settings-yt-state">no conectado</em></span>
+              </span>
+              <button class="settings-btn settings-btn-danger" id="btn-logout-yt" disabled>Cerrar sesion</button>
+            </div>
+            <div class="settings-row">
+              <span class="settings-account">
+                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="#1DB954" d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+                <span>Spotify <em id="settings-sp-state">no conectado</em></span>
+              </span>
+              <button class="settings-btn settings-btn-danger" id="btn-logout-sp" disabled>Cerrar sesion</button>
+            </div>
+            <div class="settings-row">
+              <span class="settings-account">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="rgba(120,180,255,0.85)"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+                <span>Credenciales OAuth <em>Client ID + Secret de Google / Spotify</em></span>
+              </span>
+              <button class="settings-btn" id="btn-open-setup">Configuracion inicial</button>
+            </div>
+          </section>
+
+          <!-- Bloque: Temas -->
+          <section class="settings-section">
+            <h3>Temas</h3>
+            <div class="theme-options" id="theme-options">
+              <button class="theme-opt" data-theme="original" title="Tema original (azul)">
+                <span class="theme-swatch theme-swatch-original"></span>
+                <span class="theme-label">Original</span>
+              </button>
+              <button class="theme-opt" data-theme="pink" title="Rosa pastel">
+                <span class="theme-swatch theme-swatch-pink"></span>
+                <span class="theme-label">Rosa pastel</span>
+              </button>
+              <button class="theme-opt" data-theme="dark" title="Modo oscuro">
+                <span class="theme-swatch theme-swatch-dark"></span>
+                <span class="theme-label">Oscuro</span>
+              </button>
+            </div>
+          </section>
+
+          <!-- Bloque: Ecualizador -->
+          <section class="settings-section">
+            <header class="eq-header">
+              <h3>Ecualizador</h3>
+              <label class="eq-toggle" title="Activar / desactivar EQ">
+                <input type="checkbox" id="eq-enabled" />
+                <span class="eq-toggle-track"><span class="eq-toggle-thumb"></span></span>
+              </label>
+            </header>
+            <p class="eq-note">Aplicable a archivos locales. YouTube y Spotify usan su propio motor de audio.</p>
+            <div class="eq-curve">
+              <canvas id="eq-canvas"></canvas>
+            </div>
+            <div class="eq-bands" id="eq-bands"></div>
+            <div class="eq-actions">
+              <button class="settings-btn settings-btn-ghost" id="eq-reset">Restablecer</button>
+              <button class="settings-btn settings-btn-ghost" id="eq-save-preset" title="Guarda la configuracion actual con un nombre">+ Guardar preset</button>
+              <span class="eq-presets" id="eq-presets"></span>
+            </div>
+            <div class="eq-eqapo-status" id="eq-eqapo-status">Detectando Equalizer APO...</div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== MODAL EDITAR PERFIL ===================== -->
+    <div class="settings-overlay profile-overlay" id="profile-overlay" hidden>
+      <div class="profile-card glass-panel" role="dialog" aria-label="Editar perfil">
+        <div class="glass-shine-layer"></div>
+        <header class="profile-head">
+          <h2 id="profile-card-title">Editar perfil</h2>
+          <button class="settings-close" id="profile-close" title="Cerrar" aria-label="Cerrar">
+            <svg viewBox="0 0 24 24" width="14" height="14">
+              <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </header>
+        <div class="profile-body">
+          <button class="profile-avatar-pick" id="profile-avatar-pick" type="button" title="Cambiar foto">
+            <span class="profile-avatar-img" id="profile-avatar-preview"></span>
+            <span class="profile-avatar-edit">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                  d="M3 19v-3l11-11 3 3-11 11H3zM14 5l3 3" />
+              </svg>
+              <span>Cambiar foto</span>
+            </span>
+          </button>
+          <label class="profile-field">
+            <span>Nombre</span>
+            <input type="text" id="profile-name-input" maxlength="40" placeholder="Como te llamamos?" spellcheck="false" />
+          </label>
+        </div>
+        <footer class="profile-foot">
+          <button class="settings-btn settings-btn-ghost" id="profile-cancel">Cancelar</button>
+          <button class="settings-btn settings-btn-primary" id="profile-save">Guardar</button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Contenedor oculto del reproductor de YouTube -->
+    <div id="yt-player-host" class="yt-host"></div>
+    <audio id="audio-element" crossorigin="anonymous"></audio>
+
+    <!-- Puente window.aero para Tauri (WebView2). En Electron no hace nada. -->
+    <script type="module" src="./js/aero-tauri.js"></script>
+    <script type="module" src="./js/app.js"></script>
+  </body>
+</html>

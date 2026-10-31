@@ -1,0 +1,7 @@
+Aero Player usa la tipografia Segoe UI (peso 300, light), incluida de fabrica
+en Windows. En esta carpeta puedes colocar archivos de respaldo (por ejemplo
+"Segoe UI.ttf" o una alternativa libre como Selawik) si ejecutas la aplicacion
+en un sistema operativo que no la tenga instalada.
+
+La aplicacion ya define una cadena de respaldo en main.css:
+  'Segoe UI', 'Segoe UI Light', system-ui, 'Helvetica Neue', Arial, sans-serif

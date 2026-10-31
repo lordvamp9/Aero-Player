@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aero Player - Sonda Widevine WebView2</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0f1419 0%, #1a2535 100%);
+      color: #e0e0e0;
+      padding: 40px 20px;
+      min-height: 100vh;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 { font-size: 28px; margin-bottom: 10px; color: #fff; }
+    .subtitle { color: #999; margin-bottom: 30px; font-size: 14px; }
+    .probe-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .probe-card {
+      background: rgba(30, 50, 120, 0.3);
+      border: 1px solid rgba(100, 150, 255, 0.2);
+      border-radius: 8px;
+      padding: 20px;
+      backdrop-filter: blur(10px);
+    }
+    .probe-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #6ba3ff;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .probe-value {
+      font-size: 13px;
+      color: #ccc;
+      font-family: monospace;
+      word-break: break-all;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 8px 12px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+    .probe-value.success { color: #4fb584; background: rgba(79, 181, 132, 0.1); }
+    .probe-value.error { color: #ff6b6b; background: rgba(255, 107, 107, 0.1); }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+    .status-badge.ok { background: rgba(79, 181, 132, 0.3); color: #4fb584; }
+    .status-badge.fail { background: rgba(255, 107, 107, 0.3); color: #ff6b6b; }
+    .test-section {
+      background: rgba(30, 50, 120, 0.3);
+      border: 1px solid rgba(100, 150, 255, 0.2);
+      border-radius: 8px;
+      padding: 20px;
+      backdrop-filter: blur(10px);
+      margin-top: 20px;
+    }
+    .test-button {
+      background: linear-gradient(135deg, #4a7fff 0%, #2d5acc 100%);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      margin-right: 10px;
+      margin-top: 10px;
+    }
+    .test-output {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(100, 150, 255, 0.15);
+      border-radius: 4px;
+      padding: 12px;
+      margin-top: 12px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #a0a0a0;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .test-log { margin: 4px 0; }
+    .log-success { color: #4fb584; }
+    .log-error { color: #ff6b6b; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Aero Player - Sonda Widevine</h1>
+    <p class="subtitle">Prueba de Widevine DRM en WebView2 (Tauri)</p>
+
+    <div class="probe-grid">
+      <div class="probe-card">
+        <div class="probe-title">User Agent</div>
+        <div class="probe-value" id="ua-value"></div>
+      </div>
+      <div class="probe-card">
+        <div class="probe-title">Widevine (EME)</div>
+        <div class="probe-value" id="widevine-value"></div>
+        <span class="status-badge" id="widevine-badge"></span>
+      </div>
+      <div class="probe-card">
+        <div class="probe-title">MediaKeys API</div>
+        <div class="probe-value" id="mediakeys-value"></div>
+        <span class="status-badge" id="mediakeys-badge"></span>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <div class="probe-title">Test EME</div>
+      <button class="test-button" onclick="testEME()">Probar Widevine</button>
+      <button class="test-button" onclick="testSpotifyDRM()">Probar Spotify</button>
+      <button class="test-button" onclick="clearLog()">Limpiar</button>
+      <div class="test-output" id="test-log"></div>
+    </div>
+  </div>
+
+  <script>
+    const log = (msg, type = 'info') => {
+      const el = document.getElementById("test-log");
+      const line = document.createElement("div");
+      line.className = "test-log log-" + type;
+      line.textContent = "[" + new Date().toLocaleTimeString() + "] " + msg;
+      el.appendChild(line);
+      el.scrollTop = el.scrollHeight;
+    };
+
+    const clearLog = () => {
+      document.getElementById("test-log").innerHTML = "";
+    };
+
+    const setBadge = (id, status) => {
+      const badge = document.getElementById(id);
+      badge.className = "status-badge " + status;
+      badge.textContent = status === "ok" ? "OK" : "FAIL";
+    };
+
+    document.getElementById("ua-value").textContent = navigator.userAgent;
+
+    const checkWidevine = async () => {
+      try {
+        if (navigator.requestMediaKeySystemAccess) {
+          const access = await navigator.requestMediaKeySystemAccess(
+            "com.widevine.alpha",
+            [{ initDataTypes: ["cenc"] }]
+          );
+          document.getElementById("widevine-value").classList.add("success");
+          document.getElementById("widevine-value").textContent = "Soportado";
+          setBadge("widevine-badge", "ok");
+          return true;
+        }
+      } catch (e) {
+        document.getElementById("widevine-value").classList.add("error");
+        document.getElementById("widevine-value").textContent = "No disponible";
+        setBadge("widevine-badge", "fail");
+        return false;
+      }
+      return false;
+    };
+
+    const checkMediaKeys = () => {
+      const has = !!navigator.requestMediaKeySystemAccess;
+      document.getElementById("mediakeys-value").classList.add(has ? "success" : "error");
+      document.getElementById("mediakeys-value").textContent = has ? "Soportado" : "No disponible";
+      setBadge("mediakeys-badge", has ? "ok" : "fail");
+    };
+
+    const testEME = async () => {
+      clearLog();
+      log("Probando Widevine...");
+      try {
+        const access = await navigator.requestMediaKeySystemAccess("com.widevine.alpha", [
+          { initDataTypes: ["cenc"] }
+        ]);
+        log("Widevine disponible", "success");
+      } catch (e) {
+        log("Widevine no disponible: " + e.message, "error");
+      }
+    };
+
+    const testSpotifyDRM = async () => {
+      clearLog();
+      log("Probando Spotify DRM...");
+      try {
+        const access = await navigator.requestMediaKeySystemAccess("com.widevine.alpha", [
+          {
+            initDataTypes: ["cenc"],
+            videoCapabilities: [{ contentType: "video/mp4" }],
+            audioCapabilities: [{ contentType: "audio/mp4" }]
+          }
+        ]);
+        log("Spotify puede reproducirse en esta plataforma", "success");
+      } catch (e) {
+        log("Spotify no funcionar: " + e.message, "error");
+      }
+    };
+
+    window.addEventListener("load", async () => {
+      checkMediaKeys();
+      await checkWidevine();
+      log("Sonda inicializada");
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+{
+  "name": "aero-player",
+  "version": "1.3.1",
+  "description": "Media player de escritorio con estetica Windows 7 Aero Liquid Glass",
+  "author": "vamp9 (lordvamp9)",
+  "license": "SEE LICENSE IN LICENSE",
+  "private": true,
+  "scripts": {
+    "vite": "vite",
+    "dev": "tauri dev",
+    "build": "vite build",
+    "icon": "node build/generate-icon.mjs",
+    "clean": "node -e \"const fs=require('fs');for(const d of ['dist','release','src-tauri/target']){fs.rmSync(d,{recursive:true,force:true});console.log('rm '+d)}\"",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "npm run icon && npm run build && tauri build",
+    "tauri:probe": "tauri dev --config src-tauri/tauri-probe.conf.json --no-watch"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.11.0",
+    "@tauri-apps/plugin-dialog": "^2.7.1",
+    "@tauri-apps/plugin-fs": "^2.5.1",
+    "@tauri-apps/plugin-opener": "^2.5.4",
+    "@tauri-apps/plugin-store": "^2.4.3"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "^0.1.65",
+    "@tauri-apps/cli": "^2.11.2",
+    "png-to-ico": "^2.1.8",
+    "vite": "^5.4.10"
+  }
+}
